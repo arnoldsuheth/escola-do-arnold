@@ -173,17 +173,18 @@ function atributos(){
 }
 const TREE = [{id:"HTML",a:0,b:8,x:40,y:75},{id:"CSS",a:9,b:24,x:180,y:75},{id:"Git",a:25,b:26,x:310,y:36},{id:"JS",a:29,b:39,x:310,y:114},{id:"GitHub",a:27,b:28,x:440,y:36},{id:"DOM",a:40,b:45,x:440,y:114},{id:"v1.0",a:46,b:50,x:560,y:75}];
 const TREE_E = [["HTML","CSS"],["CSS","Git"],["CSS","JS"],["Git","GitHub"],["JS","DOM"],["GitHub","v1.0"],["DOM","v1.0"]];
+function progHref(t){ const a = PROG_AULAS.find(z => z[0] >= t.a && z[0] <= t.b && !(S.prog[z[0]] && S.prog[z[0]].done)); return "#prog-" + (a ? a[0] : t.a); }
 function arvore(){
   const N = {}; TREE.forEach(t => N[t.id] = Object.assign({p:rngProg(t.a,t.b)}, t));
   const prox = TREE.find(t => N[t.id].p < 1);
   let svg = `<svg class="tree tree-wide" viewBox="0 0 600 150" role="img" aria-label="Árvore de tecnologias">`;
   TREE_E.forEach(([s,d]) => { const A = N[s], B = N[d], on = A.p === 1; svg += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
-  TREE.forEach(t => { const n = N[t.id], r = t.id.length > 4 ? 26 : 24, c = 2*Math.PI*r;
+  TREE.forEach(t => { const n = N[t.id], r = t.id.length > 4 ? 26 : 24, c = 2*Math.PI*r; svg += `<a href="${progHref(t)}">`;
     if (n.p === 1) svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:#22D3EE"/><text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:600">${t.id}</text>`;
     else { const front = prox && prox.id === t.id;
       svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:#0E131C;stroke:${front?"#7C5CFF":"#2E3748"}" stroke-width="2" ${front?'stroke-dasharray="4 4"':""}/>`;
       if (n.p > 0) svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:none;stroke:#22D3EE" stroke-width="3" stroke-dasharray="${c*n.p} ${c}" transform="rotate(-90 ${t.x} ${t.y})"/>`;
-      svg += `<text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:${n.p>0||front?"#E6E8EE":"#5A6377"}">${t.id}</text>`; } });
+      svg += `<text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:${n.p>0||front?"#E6E8EE":"#5A6377"}">${t.id}</text>`; } svg += `</a>`; });
   svg += `</svg>`;
   let txt = "Árvore completa. Você publicou a BLESSAINT 1.0.";
   if (prox){ const aula = PROG_AULAS.find(z => z[0] >= prox.a && z[0] <= prox.b && !(S.prog[z[0]] && S.prog[z[0]].done)); txt = `Próximo destravamento: <b style="color:var(--text)">${prox.id}</b> · faltam ${PROG_AULAS.filter(z => z[0] >= prox.a && z[0] <= prox.b && !(S.prog[z[0]] && S.prog[z[0]].done)).length} aulas (próxima: Aula ${aula[0]})`; }
@@ -198,6 +199,7 @@ function act(fn, k, txt, ev){
   if (delta !== 0 || txt){ S.log.unshift({t:Date.now(), d:hoje(), k, txt, xp: k === "import" ? 0 : delta}); S.log = S.log.slice(0, 400); }
   let bonusAgora = false;
   if (delta > 0 && !S.bonus[hoje()] && missoesCompletas()){ S.bonus[hoje()] = true; S.log.unshift({t:Date.now(), d:hoje(), k:"bonus", txt:"Missões do dia completas", xp:50}); bonusAgora = true; }
+  registrarRank();
   persist();
   const total = xpTotal(), lvA = nivel(total);
   if (delta > 0){ floatXP("+" + delta + " XP", ev); som("xp"); }
@@ -205,6 +207,7 @@ function act(fn, k, txt, ev){
   if (lvA.n > lvB) setTimeout(() => levelUp(lvA), 500);
   else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+50 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
   paintTop();
+  setTimeout(() => checarPresentes(true), 50);
   return delta;
 }
 
@@ -248,6 +251,8 @@ function ordem(id, qi, n){ let h = hash32(id + ":" + qi) || 1; const r = () => {
 /* ===================== ícones e peças ===================== */
 const I = (p, w=2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
 const ICO = {
+  traj: I('<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>'),
+  gift: I('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/>'),
   hoje: I('<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'),
   ia: I('<path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z"/><path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9z"/>'),
   code: I('<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>'),
@@ -284,11 +289,11 @@ const crestSVG = () => { const p = "cr" + (++_crestN); return `<svg class="crest
 const CREST_BIG = crestSVG();
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["arena","Desafios","sword"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["trajetoria","Trajetória","traj"],["cursos","Meus cursos","grid"],["arena","Desafios","sword"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["presentes","Presentes","gift"],["perfil","Perfil","perfil"]];
 const NAV_GRUPO = {claude:"Carreira", "curso-arte":"Hobbies", perfil:""};
 const NAV_TAB = ["hoje","cursos","arena","violao","perfil"];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
-const secao = r => r.startsWith("aula-") ? "claude" : r.startsWith("prog-") ? "prog" : r.startsWith("desafio-") ? "arena" : NAV.some(n => n[0] === r) ? r : r === "curso-violao" || r === "curso-ls1" || r === "curso-ls3" ? "violao" : r.startsWith("curso-") ? "cursos" : "hoje";
+const secao = r0 => { const r = r0.replace(/^(curso-.+)-m\d+$/, "$1"); return r.startsWith("fac-") ? "fac" : r.startsWith("aula-") ? "claude" : r.startsWith("prog-") ? "prog" : r.startsWith("desafio-") ? "arena" : NAV.some(n => n[0] === r) ? r : r === "curso-violao" || r === "curso-ls1" || r === "curso-ls3" ? "violao" : r.startsWith("curso-") ? "cursos" : "hoje"; };
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
   <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
@@ -349,7 +354,7 @@ function viewHoje(){
    <div class="stack">
     <section class="card o2"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
      <div class="career">${CARREIRA.map((c,i) => `${i ? `<i class="${i<=ci?"on":""}"></i>` : ""}<span class="${i<ci?"on":i===ci?"cur":""}">${c}</span>`).join("")}</div>
-     <div class="stats3"><div class="stat"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat"><div class="k">aulas</div><div class="v num">${cs.done+ps.done}<small>/${cs.total+ps.total}</small></div></div><div class="stat"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
+     <div class="stats3"><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">aulas</div><div class="v num">${cs.done+ps.done}<small>/${cs.total+ps.total}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
      <div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${lv.prox-lv.xp} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div></section>
     <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +50 xp"}</span></div>
      <div style="margin-top:6px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
@@ -518,7 +523,7 @@ function viewFac(){
 function discCard(d){
   const m = media(d), st = m === null ? ["","Sem notas"] : m >= S.fac.min ? ["ok","Acima da média"] : ["bad","Abaixo da média"];
   const val = k => typeof (d.notas||{})[k] === "number" ? String(d.notas[k]).replace(".",",") : "";
-  return `<section class="disc stack" style="gap:16px"><div class="row between" style="flex-wrap:nowrap"><div style="min-width:0"><h3 style="font-size:1.15rem">${esc(d.nome)}</h3><div class="row" style="gap:6px;margin-top:6px"><span class="tag ${st[0]}">${st[1]}</span>${portalDisc(d.nome) ? `<span class="tag fc">portal ${portalDisc(d.nome).progresso||0}%${portalDisc(d.nome).prova ? " · " + esc(portalDisc(d.nome).prova) : ""}</span>` : ""}</div></div>${ring(m===null?0:m/10, 70, 8, m!==null&&m>=S.fac.min?"#3BDB8C":"#FF5E6E", m===null?"–":f1(m))}</div>
+  return `<section class="disc stack" id="disc-${d.id}" style="gap:16px"><div class="row between" style="flex-wrap:nowrap"><div style="min-width:0"><h3 style="font-size:1.15rem">${esc(d.nome)}</h3><div class="row" style="gap:6px;margin-top:6px"><span class="tag ${st[0]}">${st[1]}</span>${portalDisc(d.nome) ? `<span class="tag fc">portal ${portalDisc(d.nome).progresso||0}%${portalDisc(d.nome).prova ? " · " + esc(portalDisc(d.nome).prova) : ""}</span>` : ""}</div></div>${ring(m===null?0:m/10, 70, 8, m!==null&&m>=S.fac.min?"#3BDB8C":"#FF5E6E", m===null?"–":f1(m))}</div>
    <div class="grades">${[["av1","AV1"],["av2","AV2"],["av3","AV3 / AVS"]].map(([k,l]) => `<label class="field">${l}<input inputmode="decimal" data-nota="${d.id}:${k}" value="${val(k)}" placeholder="0 a 10"></label>`).join("")}<label class="field">Frequência %<input inputmode="numeric" data-freq="${d.id}" value="${d.freq ?? ""}" placeholder="75"></label></div>
    <div class="grid2"><div><b class="small">Assuntos para estudar</b><div style="margin-top:8px">${(d.topicos||[]).map((t,k) => `<button class="check" role="checkbox" aria-checked="${!!t.ok}" data-top="${d.id}:${k}"><span class="box"></span><span class="t">${esc(t.t)}</span><span class="xp">+10</span></button>`).join("") || `<p class="small dim">Nenhum assunto ainda.</p>`}</div>
      <form class="row" data-add-top="${d.id}" style="margin-top:10px;flex-wrap:nowrap"><input class="input" placeholder="Ex.: estruturas de repetição" aria-label="Novo assunto"><button class="btn sm" type="submit" aria-label="Adicionar assunto">${ICO.plus}</button></form></div>
@@ -679,13 +684,17 @@ function render(keep){
   if (!$(".shell", app)){ app.innerHTML = shell(); }
   const r = rota(), s = secao(r);
   $$("[data-nav]").forEach(a => a.dataset.nav === s ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
-  const y = scrollY;
+  const y = scrollY, mm = r.match(/^curso-(.+)-m(\d+)$/);
+  if (mm){ OPEN_MODS.add(mm[1]+":"+mm[2]); FECHADOS.delete(mm[1]+":"+mm[2]); }
+  if (!S.presentes) checarPresentes(false);
   const aq = r.startsWith("aula-") && r.endsWith("-quiz"), aid = aq ? r.slice(5, -5) : r.slice(5);
   const dk = r === "desafio-dia" ? "dia:" + hoje() : r.startsWith("desafio-") ? r.slice(8).replace(/-(\d+|boss)$/, ":$1") : null;
-  const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProg() : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : r === "fac" ? viewFac() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
+  const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProg() : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : (r === "fac" || r.startsWith("fac-")) ? viewFac() : r === "trajetoria" ? viewTrajetoria() : r === "presentes" ? viewPresentes() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(mm ? mm[1] : r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
   $("#view").innerHTML = v;
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
   if (keep) scrollTo(0, y);
+  else if (mm) setTimeout(() => { const d = document.querySelector(`details[data-mod="${mm[1]}:${mm[2]}"]`); const t = d && (d.querySelector(".les.nx") || d); t && t.scrollIntoView({block:"center"}); }, 80);
+  else if (r.startsWith("fac-")) setTimeout(() => { const t = document.getElementById("disc-" + r.slice(4)); t && t.scrollIntoView({block:"start"}); }, 80);
   if (aq && !keep){ QZ[aid] = {i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0}; repintarQuiz(aid); setTimeout(() => { const z = $("#quiz"); z && z.scrollIntoView({block:"start"}); }, 60); }
   if (r.startsWith("prog-") && !keep && PROG_AULAS.some(a => String(a[0]) === r.slice(5))) setTimeout(() => abrirSheet(r.slice(5)), 30);
   document.title = (r.startsWith("aula-") ? ((CURSO_CLAUDE.find(x => x.id === aid)||{}).titulo || "Aula") + " · " : "") + "Evolution Lab";
@@ -996,18 +1005,18 @@ function svgArvore(nodes, edges, nome){
   const N = {}; nodes.forEach(n => N[n.id] = n); const prox = nodes.find(n => n.p < 1 && !n.ini);
   let s = `<svg class="tree tree-wide" viewBox="0 0 600 176" role="img" aria-label="${esc(nome)}">`;
   edges.forEach(([a,b]) => { const A = N[a], B = N[b], on = A.p >= 1 || A.ini; s += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
-  nodes.forEach(n => { const r = 22, c = 2*Math.PI*r, front = prox && prox.id === n.id;
+  nodes.forEach(n => { const r = 22, c = 2*Math.PI*r, front = prox && prox.id === n.id; s += `<a href="${esc(n.href||"#hoje")}">`;
     if (n.p >= 1) s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#22D3EE"/><text x="${n.x}" y="${n.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:700">${esc(n.cod)}</text>`;
     else { s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#0E131C;stroke:${front?"#7C5CFF":"#2E3748"}" stroke-width="2" ${front?'stroke-dasharray="4 4"':""}/>`;
       if (n.p > 0) s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:none;stroke:#22D3EE" stroke-width="3" stroke-dasharray="${c*n.p} ${c}" transform="rotate(-90 ${n.x} ${n.y})"/>`;
       s += `<text x="${n.x}" y="${n.y+4}" text-anchor="middle" style="fill:${n.p>0||front?"#E6E8EE":"#5A6377"};font-weight:600">${esc(n.cod)}</text>`; }
-    s += `<text x="${n.x}" y="${n.y+38}" text-anchor="middle" class="tl" style="fill:${n.p>=1?"#A3ABBD":front?"#C4B5FD":"#6E7891"}">${esc(n.nome)}</text>`; });
+    s += `<text x="${n.x}" y="${n.y+38}" text-anchor="middle" class="tl" style="fill:${n.p>=1?"#A3ABBD":front?"#C4B5FD":"#6E7891"}">${esc(n.nome)}</text></a>`; });
   return s + `</svg>`;
 }
 function listaArvore(nodes){
   const prox = nodes.find(n => n.p < 1 && !n.ini);
   return `<div class="tree-list">${nodes.map(n => { const st = n.ini && n.p < 1 ? "em andamento" : n.p >= 1 ? (n.ini ? "concluído" : "dominado") : prox && prox.id === n.id ? (n.p > 0 ? "em progresso" : "próximo") : n.p > 0 ? "em progresso" : "bloqueado";
-    return `<div class="tn ${n.p>=1||n.ini?"ok":prox && prox.id===n.id?"cur":n.p>0?"mid":"lock"}">${ring(n.p, 40, 5, n.p>=1||n.ini?"#22D3EE":n.p>0?"#7C5CFF":"transparent", n.cod)}<span style="min-width:0;flex:1"><b>${esc(n.nome)}</b><span class="tiny dim" style="display:block">${st}</span></span><span class="mono small ${n.p>=1?"okc":n.ini?"":"dim"}">${Math.round(n.p*100)}%</span></div>`; }).join("")}</div>`;
+    return `<a class="tn ${n.p>=1||n.ini?"ok":prox && prox.id===n.id?"cur":n.p>0?"mid":"lock"}" href="${esc(n.href||"#hoje")}">${ring(n.p, 40, 5, n.p>=1||n.ini?"#22D3EE":n.p>0?"#7C5CFF":"transparent", n.cod)}<span style="min-width:0;flex:1"><b>${esc(n.nome)}</b><span class="tiny dim" style="display:block">${st}</span></span><span class="mono small ${n.p>=1?"okc":n.ini?"":"dim"}">${Math.round(n.p*100)}%</span></a>`; }).join("")}</div>`;
 }
 function cardArvore(t, k){
   const nn = t.nodes.filter(n => !n.ini), prox = nn.find(n => n.p < 1), total = nn.length ? nn.reduce((a,n) => a + n.p, 0) / nn.length : 0;
@@ -1016,11 +1025,12 @@ function cardArvore(t, k){
    <div class="small muted" style="margin-top:6px">${prox ? `Próximo destravamento: <b style="color:var(--text)">${esc(prox.nome)}</b>${t.dica ? ` · ${t.dica(prox)}` : ""}` : esc(t.fim)}</div></section>`;
 }
 function arvoreProgNodes(){ const nomes = {HTML:"Estrutura", CSS:"Estilo", Git:"Versões", JS:"Lógica", GitHub:"Publicar", DOM:"Interação", "v1.0":"BLESSAINT 1.0"};
-  return {nome:"Programação (mobile)", nodes: TREE.map(t => ({id:t.id, cod:t.id.length > 4 ? t.id.slice(0,4) : t.id, nome:nomes[t.id]||t.id, x:t.x, y:t.y, p:rngProg(t.a,t.b)})), edges:TREE_E}; }
+  return {nome:"Programação (mobile)", nodes: TREE.map(t => ({id:t.id, cod:t.id.length > 4 ? t.id.slice(0,4) : t.id, nome:nomes[t.id]||t.id, x:t.x, y:t.y, p:rngProg(t.a,t.b), href:progHref(t)})), edges:TREE_E}; }
 function arvoreClaude(){
   const pn = n => { const its = CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova"); return its.filter(x => S.claude[x.id] && S.claude[x.id].done).length / (its.length || 1); };
   const pf = S.claude.pf, pe = pf && pf.done ? Math.min(1, pct(pf)/.7) : 0;
-  const nodes = [{id:"n1",cod:"N1",nome:NIVEIS[0].nome,x:40,y:84,p:pn(1)},{id:"n2",cod:"N2",nome:"Avançado",x:170,y:40,p:pn(2)},{id:"n3",cod:"N3",nome:"Agentes",x:300,y:84,p:pn(3)},{id:"n4",cod:"N4",nome:"Construtor",x:430,y:40,p:pn(4)},{id:"ex",cod:"★",nome:"Expert",x:560,y:84,p:pe}];
+  const hl = n => { const its = CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova"), a = its.find(x => !(S.claude[x.id] && S.claude[x.id].done)) || its[0]; return a ? "#aula-" + a.id : "#claude"; }, pv = CURSO_CLAUDE.find(x => x.tipo === "prova");
+  const nodes = [{id:"n1",cod:"N1",nome:NIVEIS[0].nome,x:40,y:84,p:pn(1),href:hl(1)},{id:"n2",cod:"N2",nome:"Avançado",x:170,y:40,p:pn(2),href:hl(2)},{id:"n3",cod:"N3",nome:"Agentes",x:300,y:84,p:pn(3),href:hl(3)},{id:"n4",cod:"N4",nome:"Construtor",x:430,y:40,p:pn(4),href:hl(4)},{id:"ex",cod:"★",nome:"Expert",x:560,y:84,p:pe,href:pv ? "#aula-" + pv.id : "#claude"}];
   return {nome:"Claude", href:"#claude", nodes, edges:[["n1","n2"],["n2","n3"],["n3","n4"],["n4","ex"]], fim:"Árvore completa: Expert em Claude.", dica: n => { const pc = proxClaude(); return pc ? `próxima: ${esc(nomeItem(pc))}` : ""; }};
 }
 const FAC_COD = [["redes","RED","Redes"],["segur","SEG","Segurança"],["matem","MAT","Matemática"],["program","PRG","Programação"],["nuvem","NUV","Nuvem"],["labvida","LAB","Labvida"],["algorit","ALG","Algoritmos"],["banco","BD","Banco de dados"],["estrutura","ED","Estruturas"],["sistemas","SO","Sistemas"],["engenharia","ES","Engenharia"]];
@@ -1032,24 +1042,141 @@ function arvoreFac(){
     if (loc){ const its = (loc.topicos||[]).concat(loc.entregas||[]); if (its.length) v = Math.max(v, its.filter(x => x.ok).length/its.length); const m = media(loc); if (m !== null && m >= S.fac.min) v = 1; } return Math.min(1, v); };
   const per = (S.fac.portal && S.fac.portal.periodo) || S.fac.sem || 1;
   const lista = nomes.slice(0, 8), metade = Math.ceil(lista.length/2), cols = Math.max(1, metade), xs = i => cols === 1 ? 300 : 160 + i*(320/(cols-1));
-  const nodes = [{id:"ini", cod:per+"º", nome:"Período "+per, x:40, y:84, p: lista.length ? lista.reduce((a,n) => a + prog(n), 0)/lista.length : 0}];
+  const nodes = [{id:"ini", href:"#fac", cod:per+"º", nome:"Período "+per, x:40, y:84, p: lista.length ? lista.reduce((a,n) => a + prog(n), 0)/lista.length : 0}];
   const edges = [];
-  lista.forEach((n,i) => { const row = i < metade ? 0 : 1, col = row ? i - metade : i; nodes.push({id:"d"+i, cod:facCod(n), nome:facCurto(n), x:xs(col), y: row ? 128 : 40, p:prog(n)}); });
+  lista.forEach((n,i) => { const row = i < metade ? 0 : 1, col = row ? i - metade : i; nodes.push({id:"d"+i, href:(l => l ? "#fac-"+l.id : "#fac")(S.fac.discs.find(d => d.nome.toLowerCase() === n.toLowerCase())), cod:facCod(n), nome:facCurto(n), x:xs(col), y: row ? 128 : 40, p:prog(n)}); });
   [0,1].forEach(row => { const ids = nodes.slice(1).filter(n => n.y === (row ? 128 : 40)).map(n => n.id); if (!ids.length) return; edges.push(["ini", ids[0]]); for (let k=1;k<ids.length;k++) edges.push([ids[k-1], ids[k]]); edges.push([ids[ids.length-1], "fim"]); });
-  nodes.push({id:"fim", cod:(per+1)+"º", nome:"Período "+(per+1), x:560, y:84, p: nodes.slice(1).length && nodes.slice(1).every(n => n.p >= 1) ? 1 : 0});
+  nodes.push({id:"fim", href:"#fac", cod:(per+1)+"º", nome:"Período "+(per+1), x:560, y:84, p: nodes.slice(1).length && nodes.slice(1).every(n => n.p >= 1) ? 1 : 0});
   const ini = nodes[0]; ini.ini = true; /* período em curso: progresso = média das disciplinas, já destravado */
   return {nome:"Faculdade", href:"#fac", nodes, edges, fim:"Período concluído. Rumo ao próximo!", dica: n => n.id === "fim" ? "feche todas as disciplinas" : "acompanhe pelo portal"};
 }
 function arvoreDesign(){
-  const c = extC("criadores"), g = idx => { let d = 0, t = 0; idx.forEach(mi => { d += modFeitas(c, mi); t += modTot(c.mods[mi]); }); return t ? d/t : 0; };
-  const nodes = [{id:"base",cod:"BAS",nome:"Base",x:40,y:84,p:g([0])},{id:"ps",cod:"PS",nome:"Photoshop",x:160,y:40,p:g([1,15])},{id:"ai",cod:"AI",nome:"Illustrator",x:160,y:128,p:g([2])},
-   {id:"fx",cod:"FX",nome:"Efeitos",x:290,y:40,p:g([6,8,9])},{id:"logo",cod:"LOG",nome:"Logotipos",x:290,y:128,p:g([3])},{id:"soc",cod:"SOC",nome:"Social media",x:420,y:40,p:g([4,5,11])},{id:"neg",cod:"$",nome:"Negócio",x:420,y:128,p:g([7,10,12,13,14])},
-   {id:"pro",cod:"PRO",nome:"Designer",x:560,y:84,p:extStats(c).p}];
+  const c = extC("criadores"), hm = idx => { const mi = idx.find(k => modFeitas(c, k) < modTot(c.mods[k])); return "#curso-criadores-m" + (mi === undefined ? idx[0] : mi); }, g = idx => { let d = 0, t = 0; idx.forEach(mi => { d += modFeitas(c, mi); t += modTot(c.mods[mi]); }); return t ? d/t : 0; };
+  const nodes = [{id:"base",cod:"BAS",nome:"Base",x:40,y:84,p:g([0]),href:hm([0])},{id:"ps",cod:"PS",nome:"Photoshop",x:160,y:40,p:g([1,15]),href:hm([1,15])},{id:"ai",cod:"AI",nome:"Illustrator",x:160,y:128,p:g([2]),href:hm([2])},
+   {id:"fx",cod:"FX",nome:"Efeitos",x:290,y:40,p:g([6,8,9]),href:hm([6,8,9])},{id:"logo",cod:"LOG",nome:"Logotipos",x:290,y:128,p:g([3]),href:hm([3])},{id:"soc",cod:"SOC",nome:"Social media",x:420,y:40,p:g([4,5,11]),href:hm([4,5,11])},{id:"neg",cod:"$",nome:"Negócio",x:420,y:128,p:g([7,10,12,13,14]),href:hm([7,10,12,13,14])},
+   {id:"pro",cod:"PRO",nome:"Designer",x:560,y:84,p:extStats(c).p,href:(px => px ? "#curso-criadores-m" + px.mi : "#curso-criadores")(extProx(c))}];
   return {nome:"Design", href:"#curso-criadores", nodes, edges:[["base","ps"],["base","ai"],["ps","fx"],["ai","logo"],["fx","soc"],["logo","neg"],["soc","pro"],["neg","pro"]], fim:"Designer completo.", dica: () => { const px = extProx(c); return px ? `continue em ${esc(px.m)}` : ""; }};
 }
 let TREE_TAB = (() => { try { return localStorage.getItem("ea-ttab") || "prog"; } catch(e){ return "prog"; } })();
 document.addEventListener("click", e => { const t = e.target.closest("[data-ttab]"); if (!t) return; TREE_TAB = t.dataset.ttab; try { localStorage.setItem("ea-ttab", TREE_TAB); } catch(x){}
   $$("[data-ttab]").forEach(b => b.setAttribute("aria-selected", String(b === t))); $$("[data-tree]").forEach(c => c.classList.toggle("on", c.dataset.tree === TREE_TAB)); });
+
+/* ===================== TRAJETÓRIA (patentes e histórico) ===================== */
+function xpPartes(){
+  let claude = 0, prog = 0, fac = 0;
+  CURSO_CLAUDE.forEach(it => { const r = S.claude[it.id]; if (r && r.done){ const b = it.tipo === "prova" ? [300,200] : it.tipo === "rev" ? [150,100] : [100,50]; claude += b[0] + Math.round(b[1]*pct(r)); } });
+  PROG_AULAS.forEach(([n]) => { const r = S.prog[n]; if (r && r.done){ prog += 100; if (r.tot) prog += Math.round(50*r.ok/r.tot); } });
+  Object.values(S.chefes).forEach(v => { if (v) prog += 50; });
+  S.fac.discs.forEach(d => { const m = media(d); if (m !== null && m >= S.fac.min) fac += 200; (d.topicos||[]).forEach(t => { if (t.ok) fac += 10; }); (d.entregas||[]).forEach(t => { if (t.ok) fac += 30; }); });
+  let missoes = 0; Object.values(S.missoes).forEach(a => (a||[]).forEach(v => { if (v) missoes += 20; }));
+  return [["Curso de Claude", claude, "#A78BFA"], ["Programação", prog + missoes, "#22D3EE"], ["Faculdade", fac, "#F472B6"], ["Design e cursos da área", xpExtra(), "#34D399"], ["Arena de desafios", xpDesafios(true), "#F59E0B"], ["Bônus de constância", Object.keys(S.bonus).length * 50, "#7C5CFF"]];
+}
+/* data em que cada patente foi alcançada, reconstruída do diário */
+function datasPatentes(){
+  const total = xpTotal(), log = S.log.slice().reverse(); let soma = 0; log.forEach(l => soma += (l.xp||0));
+  let cum = total - soma; const out = {}; S.ranks = S.ranks || {};
+  RANKS.forEach((r,i) => { if (S.ranks[i]) out[i] = S.ranks[i]; else if (r[0] <= cum) out[i] = "antes"; });
+  log.forEach(l => { cum += (l.xp||0); RANKS.forEach((r,i) => { if (!(i in out) && cum >= r[0]) out[i] = l.d; }); });
+  return out;
+}
+function registrarRank(){ const d = datasPatentes(), tot = xpTotal(); S.ranks = S.ranks || {}; RANKS.forEach((r,i) => { if (tot >= r[0] && !S.ranks[i]) S.ranks[i] = d[i] && d[i] !== "antes" ? d[i] : (d[i] || hoje()); }); }
+function viewTrajetoria(){
+  const lv = nivel(), tot = lv.xp, dp = datasPatentes(), partes = xpPartes(), maxP = Math.max(1, ...partes.map(p => p[1]));
+  const ativos = diasAtivos(), dias14 = [...Array(14)].map((_,i) => { const d = new Date(); d.setDate(d.getDate() - (13-i)); const k = iso(d); return [k, ativos[k]||0]; });
+  const mx = Math.max(10, ...dias14.map(d => d[1])), xp7 = dias14.slice(7).reduce((a,d) => a + d[1], 0), media7 = xp7/7;
+  const falta = lv.prox ? lv.prox - tot : 0, estim = lv.prox && media7 > 0 ? Math.ceil(falta/media7) : null;
+  const fmt = k => k === "antes" ? "antes do diário" : fmtData(k);
+  const medalhas_ = medalhas(), pres = presentesAtuais();
+  const marcos = S.log.filter(l => (l.xp||0) >= 100).slice(0, 6);
+  return `<div class="stack fade">
+  <section class="course-hero"><div class="hero-grid"><div class="row" style="gap:20px;flex-wrap:nowrap">${badge(lv, 84)}<div style="min-width:0"><span class="eyebrow">trajetória · lvl ${lv.n} de ${RANKS.length}</span><h1 style="font-size:2rem">${esc(lv.nome)}</h1><p class="muted small" style="margin:4px 0 0">${CARREIRA[carreiraIdx(lv.n)]} · <span class="mono">${tot} xp</span> de carreira</p></div></div>
+   <div><div class="bar"><i style="width:${Math.round(lv.p*100)}%"></i></div><p class="small muted" style="margin:8px 0 0">${lv.prox ? `Faltam <b class="mono" style="color:var(--text)">${falta} xp</b> para ${esc(lv.proxNome)}${estim ? ` · no seu ritmo dos últimos 7 dias (${Math.round(media7)} xp/dia), cerca de ${estim} ${estim === 1 ? "dia" : "dias"}` : ""}.` : "Topo da carreira."}</p></div></div></section>
+  <div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">xp de carreira</div><div class="v num">${tot}</div></div><div class="stat"><div class="k">xp de hobby</div><div class="v num" style="color:var(--amber)">${xpHobby()}</div></div><div class="stat"><div class="k">últimos 7 dias</div><div class="v num">${xp7}<small> xp</small></div></div><div class="stat"><div class="k">sequência</div><div class="v num">${streak()}<small> dias</small></div></div></div>
+  <section class="card"><span class="k">Escada de patentes</span><div class="ladder" style="margin-top:10px">${RANKS.map((r,i) => { const ok = tot >= r[0], cur = lv.n === i+1;
+    return `<div class="rg ${ok?"ok":""} ${cur?"cur":""}"><span class="dot">${ok ? ICO.check : (i+1)}</span><span style="flex:1;min-width:0"><b>${esc(r[1])}</b><span class="tiny dim" style="display:block">${CARREIRA[carreiraIdx(i+1)]} · ${r[0]} xp</span></span><span class="tiny mono ${cur?"vio":"dim"}">${cur ? "você está aqui" : ok ? fmt(dp[i]||"antes") : `faltam ${r[0]-tot} xp`}</span></div>`; }).join("")}</div></section>
+  <div class="grid2"><section class="card"><span class="k">De onde vem o seu XP</span>${partes.map(([n,v,c]) => `<div class="attr"><span style="min-width:0">${esc(n)}</span><div class="bar"><i style="width:${Math.round(v/maxP*100)}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Só o que é da sua área sobe de patente. Hobbies (violão, desenho) têm XP próprio.</div></section>
+  <section class="card"><span class="k">Últimos 14 dias</span><div class="hbars" style="margin-top:12px">${dias14.map(([k,v]) => `<div title="${fmtData(k)}: ${v} xp"><i style="height:${Math.max(3, Math.round(v/mx*100))}%" class="${v ? "on" : ""} ${k===hoje() ? "today" : ""}"></i></div>`).join("")}</div><div class="row between tiny dim" style="margin-top:6px"><span>${fmtData(dias14[0][0])}</span><span>hoje</span></div></section></div>
+  <section class="card"><span class="k">Maiores conquistas recentes</span>${marcos.length ? marcos.map(l => `<div class="row between" style="padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span class="small" style="min-width:0">${esc(l.txt || "Conquista")}</span><span class="row" style="gap:10px;flex:none"><b class="mono" style="color:var(--cyan)">+${l.xp}</b><span class="tiny dim">${fmtData(l.d)}</span></span></div>`).join("") : `<p class="small muted" style="margin-top:8px">Ainda sem grandes marcos. Conclua uma aula ou um módulo e ele aparece aqui.</p>`}</section>
+  <div class="grid2"><a class="card dday" href="#presentes"><span class="ico2" style="color:var(--amber)">${ICO.gift}</span><span style="flex:1;min-width:0"><b>Presentes</b><span class="tiny dim" style="display:block">${pres.length} desbloqueados</span></span><span class="tiny mono" style="color:var(--violet)">abrir ›</span></a>
+  <a class="card dday" href="#perfil"><span class="ico2" style="color:var(--violet)">${ICO.perfil}</span><span style="flex:1;min-width:0"><b>Conquistas e boletim</b><span class="tiny dim" style="display:block">${medalhas_.filter(m => m[2]).length}/${medalhas_.length} medalhas</span></span><span class="tiny mono" style="color:var(--violet)">abrir ›</span></a></div>
+  </div>`;
+}
+
+/* ===================== PRESENTES (material gratuito ao concluir etapas) ===================== */
+const progOk = (a,b) => rngProg(a,b) >= 1;
+const criadoresOk = idx => { const c = extC("criadores"); return !!c && idx.every(mi => modFeitas(c, mi) >= modTot(c.mods[mi])); };
+const facOk = cod => { const n = arvoreFac().nodes.find(x => x.cod === cod && !x.ini); return !!n && n.p >= 1; };
+const cursoOk = id => { const c = extC(id); return !!c && extStats(c).p >= 1; };
+const PRESENTES = [
+ {id:"p-html", area:"Programação", t:"MDN: trilha de desenvolvimento web", tipo:"curso", url:"https://developer.mozilla.org/pt-BR/docs/Learn_web_development", why:"Você fechou o bloco de HTML da BLESSAINT. A MDN é a referência que profissionais abrem todo dia, e a trilha de aprendizado deles é gratuita e em português. Use para tirar dúvida de qualquer tag.", quando:"Conclua as aulas 0 a 8 de programação (HTML)", ok:() => progOk(0,8)},
+ {id:"p-git", area:"Programação", t:"Pro Git (livro oficial, em português)", tipo:"ebook", url:"https://git-scm.com/book/pt-br/v2", why:"Git e GitHub são o que publica o seu site. Esse é o livro oficial, gratuito, e vai te acompanhar até virar profissional.", quando:"Conclua as aulas 25 a 28 (Git e GitHub)", ok:() => progOk(25,28)},
+ {id:"p-js", area:"Programação", t:"Eloquent JavaScript (livro online)", tipo:"ebook", url:"https://eloquentjavascript.net/", why:"Lógica de programação com JavaScript, de graça, de um jeito que faz pensar. Está em inglês, e vale a pena porque o inglês técnico vai ser seu aliado de carreira.", quando:"Conclua as aulas 29 a 39 (JavaScript)", ok:() => progOk(29,39)},
+ {id:"p-v1", area:"Programação", t:"Dica de carreira: seu primeiro portfólio", tipo:"dica", txt:"Você publicou a BLESSAINT 1.0. Agora transforme isso em portfólio: uma página simples com 3 projetos reais (BLESSAINT, o Studio Evolution Tech e a loja da Juliana), cada um com uma foto, o problema que resolveu e o link. Quem contrata quer ver coisa funcionando, não só certificado.", quando:"Conclua a aula 50 (BLESSAINT 1.0)", ok:() => progOk(46,50)},
+ {id:"c-n1", area:"Claude", t:"Guia oficial de engenharia de prompts", tipo:"ebook", url:"https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview", why:"Você terminou o Nível 1. Aprender a pedir bem é a habilidade que mais rende com IA, e esse guia é da própria Anthropic.", quando:"Conclua o Nível 1 do curso de Claude", ok:() => nivelDone(1)},
+ {id:"c-n2", area:"Claude", t:"Documentação do Claude Code", tipo:"curso", url:"https://docs.claude.com/en/docs/claude-code/overview", why:"No Nível 2 você já usa recursos avançados. Esse é o caminho para programar junto com a IA direto no seu projeto.", quando:"Conclua o Nível 2 do curso de Claude", ok:() => nivelDone(2)},
+ {id:"c-n3", area:"Claude", t:"Building effective agents (artigo da Anthropic)", tipo:"ebook", url:"https://www.anthropic.com/engineering/building-effective-agents", why:"Você chegou em Agentes. Esse artigo explica, em linguagem direta, quando usar agentes e como montar um bom (está em inglês).", quando:"Conclua o Nível 3 do curso de Claude", ok:() => nivelDone(3)},
+ {id:"c-n4", area:"Claude", t:"Agent SDK: documentação oficial", tipo:"curso", url:"https://docs.claude.com/en/api/agent-sdk/overview", why:"Construtor de verdade: com o SDK você monta o seu próprio agente. É o tipo de habilidade que vira serviço para vender no Studio Evolution Tech.", quando:"Conclua o Nível 4 do curso de Claude", ok:() => nivelDone(4)},
+ {id:"d-base", area:"Design", t:"Laws of UX", tipo:"ebook", url:"https://lawsofux.com/", why:"Você fechou a base do design. Aqui estão, de graça, as regras de psicologia por trás de interfaces que funcionam: ótimo para o site da BLESSAINT e para vender melhor (em inglês).", quando:"Conclua o módulo Base do curso Academia de Criadores", ok:() => criadoresOk([0])},
+ {id:"d-ps", area:"Design", t:"Google Fonts Knowledge", tipo:"ebook", url:"https://fonts.google.com/knowledge", why:"Depois do Photoshop, o que mais separa o amador do profissional é tipografia. Esse guia gratuito ensina a escolher e combinar fontes.", quando:"Conclua os módulos de Photoshop", ok:() => criadoresOk([1,15])},
+ {id:"d-ai", area:"Design", t:"Dica de carreira: logo é conversa, não só desenho", tipo:"dica", txt:"Antes de abrir o Illustrator, faça 5 perguntas ao cliente: quem compra, o que ele sente ao comprar, 3 marcas que ele admira, onde o logo vai aparecer e o que não pode parecer. Logotipo bom nasce da resposta, e o cliente paga melhor por quem entende o negócio dele.", quando:"Conclua o módulo de Illustrator", ok:() => criadoresOk([2])},
+ {id:"d-neg", area:"Design", t:"Sebrae: conteúdos gratuitos para vender e precificar", tipo:"curso", url:"https://www.sebrae.com.br/", why:"Você terminou os módulos de negócio. O Sebrae tem cursos e e-books gratuitos sobre preço, atendimento e vendas, perfeitos para quem atende cliente pequeno, que é o seu caso.", quando:"Conclua os módulos de negócio do curso de design", ok:() => criadoresOk([7,10,12,13,14])},
+ {id:"d-pro", area:"Design", t:"Dica de carreira: venda o resultado, não a hora", tipo:"dica", txt:"Designer completo: agora pare de cobrar por hora. Ofereça 3 pacotes (básico, completo e premium) com o que o cliente recebe em cada um e o prazo. Quem escolhe entre 3 opções raramente pergunta se deve contratar.", quando:"Conclua todo o curso Academia de Criadores", ok:() => cursoOk("criadores")},
+ {id:"f-red", area:"Faculdade", t:"Cartilha de Segurança para Internet (CERT.br)", tipo:"ebook", url:"https://cartilha.cert.br/", why:"Redes e segurança andam juntas. A cartilha do CERT.br é gratuita, em português, e serve até para orientar seus clientes.", quando:"Conclua a disciplina de Redes", ok:() => facOk("RED")},
+ {id:"f-seg", area:"Faculdade", t:"OWASP Top 10", tipo:"ebook", url:"https://owasp.org/www-project-top-ten/", why:"A lista das 10 falhas mais comuns em sites. Conhecer isso cedo coloca você na frente de muito programador (em inglês).", quando:"Conclua a disciplina de Segurança", ok:() => facOk("SEG")},
+ {id:"f-prg", area:"Faculdade", t:"Python para Zumbis", tipo:"curso", url:"https://pycursos.com/python-para-zumbis/", why:"Curso gratuito em português que ensina lógica de programação do jeito divertido, ótimo reforço para a faculdade.", quando:"Conclua a disciplina de Programação", ok:() => facOk("PRG")},
+ {id:"f-mat", area:"Faculdade", t:"Khan Academy: Matemática", tipo:"curso", url:"https://pt.khanacademy.org/math", why:"Matemática vira sua amiga com aulas gratuitas, em português e no seu ritmo.", quando:"Conclua a disciplina de Matemática", ok:() => facOk("MAT")},
+ {id:"f-per", area:"Faculdade", t:"CS50 de Harvard (curso gratuito)", tipo:"curso", url:"https://cs50.harvard.edu/x/", why:"Você fechou um período inteiro. O CS50 é o curso introdutório de Ciência da Computação mais famoso do mundo, gratuito e com legendas.", quando:"Conclua todas as disciplinas do período", ok:() => { const n = arvoreFac().nodes; return n.length > 2 && n.filter(x => !x.ini && x.id !== "fim").every(x => x.p >= 1); }},
+ {id:"h-arte", area:"Hobby", t:"Dica: desenho é treino, não talento", tipo:"dica", txt:"Concluir o curso Arte de Elite é só a largada. O que faz a mão evoluir é volume: 10 minutos por dia valem mais que 2 horas por mês. Escolha um tema por semana, desenhe, e guarde tudo em ordem: em 3 meses você vai se surpreender ao comparar.", quando:"Conclua o curso Arte de Elite", ok:() => cursoOk("arte")},
+ {id:"h-violao", area:"Hobby", t:"Dica: violão cresce com constância", tipo:"dica", txt:"Você completou o Violão Academy. Agora toque música inteira, ainda que devagar. Escolha uma por mês, grave um áudio no celular e compare com o mês anterior. Tocar no louvor ou para a família também é treino, e dá motivo para continuar.", quando:"Conclua o curso Violão Academy", ok:() => cursoOk("violao")}
+];
+const DICAS_MOD = [
+ "Quem sabe construir e vender ganha dos dois lados: o programador que vende e o vendedor que entende de tecnologia.",
+ "Portfólio vence currículo. Mostre projeto funcionando, com link, e conte o problema que ele resolveu.",
+ "Cobre pelo resultado. “Site que vende pelo WhatsApp” vale mais do que “site bonito”.",
+ "Ensinar fixa. Escreva um post curto sobre o que aprendeu neste módulo para o Instagram do Studio Evolution Tech.",
+ "Estude em blocos de 25 minutos com 5 de pausa. Parar na hora certa é parte do método.",
+ "Todo cliente quer saber 3 coisas: quanto custa, quando entrega e o que ganha. Tenha essas respostas prontas.",
+ "Erro no código não é fracasso, é pista. Leia a mensagem inteira antes de pedir ajuda.",
+ "Padronize: mesma cor, mesma fonte, mesmo botão. É isso que faz uma marca parecer profissional.",
+ "Peça depoimento de cada cliente satisfeito, ainda no dia da entrega. Prova social vende por você.",
+ "Revise o que aprendeu 1 dia, 1 semana e 1 mês depois. É assim que o cérebro guarda de verdade.",
+ "Pequeno todo dia vence grande de vez em quando. Dez minutos hoje já contam.",
+ "Aprenda a dizer o prazo real. Prometer menos e entregar antes constrói sua reputação.",
+ "Copie o processo, não o resultado: veja como bons sites e designs são montados e refaça do seu jeito.",
+ "Anote o que deu certo em cada projeto. Em seis meses isso vira o seu manual de trabalho.",
+ "Cliente pequeno bem atendido indica o próximo. Boa resposta no WhatsApp também é parte do serviço."
+];
+function presentesModulos(){
+  const out = [];
+  EXT_CURSOS.forEach(c => c.mods.forEach((m,mi) => { out.push({id:`m-${c.id}-${mi}`, area:c.nome, t:`Módulo concluído: ${m.t}`, tipo:"dica", txt:DICAS_MOD[hash32(c.id+mi) % DICAS_MOD.length], quando:`Conclua o módulo "${m.t}"`, ok:() => modFeitas(c, mi) >= modTot(m) && modTot(m) > 0, mod:true}); }));
+  return out;
+}
+const presentesTodos = () => PRESENTES.concat(presentesModulos());
+const presentesAtuais = () => presentesTodos().filter(g => { try { return g.ok(); } catch(e){ return false; } });
+function checarPresentes(avisar){
+  if (!S.presentes){ S.presentes = {}; presentesAtuais().forEach(g => S.presentes[g.id] = "antes"); return []; }
+  const novos = presentesAtuais().filter(g => !S.presentes[g.id]);
+  novos.forEach(g => S.presentes[g.id] = hoje());
+  if (novos.length && avisar){ try { persist(); } catch(e){} setTimeout(() => { if ($(".modal")) return toast("Presente novo desbloqueado! Veja em Presentes."); mostrarPresente(novos[0], novos.length - 1); }, 1400); }
+  return novos;
+}
+function mostrarPresente(g, mais){
+  som("up"); confetti && confetti();
+  modal(`<span class="tag gold">presente desbloqueado</span><h2 style="margin:10px 0 6px">${esc(g.t)}</h2><p class="muted" style="line-height:1.55">${esc(g.why || g.txt)}</p>${mais ? `<p class="tiny dim">Mais ${mais} ${mais === 1 ? "presente" : "presentes"} esperando em Presentes.</p>` : ""}<div class="row" style="margin-top:14px">${g.url ? `<a class="btn gold" href="${esc(g.url)}" target="_blank" rel="noopener">Abrir material ↗</a>` : ""}<a class="btn" href="#presentes" data-close>Ver todos</a><button class="btn ghost" data-close>Depois</button></div>`, true);
+}
+function viewPresentes(){
+  const todos = presentesTodos(), fixos = todos.filter(g => !g.mod), mods = todos.filter(g => g.mod), ok = fixos.filter(g => { try { return g.ok(); } catch(e){ return false; } }), modsOk = mods.filter(g => { try { return g.ok(); } catch(e){ return false; } });
+  const card = (g, on) => `<section class="card gift ${on ? "" : "lock"}"><div class="row between" style="flex-wrap:nowrap;gap:10px"><div style="min-width:0"><span class="tag ${on ? "gold" : ""}">${esc(g.area)} · ${g.tipo === "ebook" ? "e-book" : g.tipo === "curso" ? "curso grátis" : "dica"}</span><h3 style="margin:8px 0 4px;font-size:1.05rem;line-height:1.3">${on ? esc(g.t) : "Presente escondido"}</h3></div><span class="gico">${on ? ICO.gift : ICO.lock}</span></div>
+   <p class="small ${on ? "muted" : "dim"}" style="margin:4px 0 0;line-height:1.5">${on ? esc(g.why || g.txt) : esc(g.quando)}</p>${on && g.url ? `<div class="row" style="margin-top:12px"><a class="btn sm gold" href="${esc(g.url)}" target="_blank" rel="noopener">Abrir material ↗</a></div>` : ""}</section>`;
+  return `<div class="stack fade">
+  <div class="head"><div><h1>Presentes</h1><div class="muted small" style="margin-top:4px">Material gratuito escolhido para o caminho que você está seguindo. Cada etapa concluída libera um.</div></div><span class="pill">${ok.length + modsOk.length} desbloqueados</span></div>
+  <div class="grid2" style="align-items:start">${fixos.map(g => card(g, ok.includes(g))).join("")}</div>
+  <details class="card"><summary style="cursor:pointer"><b>Dicas de módulo</b> <span class="tiny dim">· ${modsOk.length}/${mods.length} liberadas</span></summary><div class="stack" style="margin-top:12px;gap:10px">${modsOk.length ? modsOk.map(g => card(g, true)).join("") : `<p class="small muted">Conclua um módulo dos seus cursos e a primeira dica aparece aqui.</p>`}</div></details>
+  <p class="tiny dim">Os materiais são de terceiros, abrem em outra aba e são gratuitos. Se algum link mudar, me avise que eu troco.</p>
+  </div>`;
+}
+document.addEventListener("click", e => { const g = e.target.closest && e.target.closest("[data-go]"); if (g) location.hash = g.dataset.go; });
+
 const FRASE_DIA = () => FRASES[hash32(hoje()) % FRASES.length];
 
 /* ===================== eventos ===================== */
