@@ -7,3 +7,6 @@ A escola particular do Arnold: **Curso de Claude** (do zero ao avançado), **Cur
 - Gamificação: XP, níveis, sequência de dias, missões do dia, conquistas e quiz com combo.
 
 Acesse: https://arnoldsuheth.github.io/escola-do-arnold/
+
+## Sincronização com a Estácio
+Uma tarefa agendada lê a sala de aula da Estácio todo dia às 00:00 e grava `faculdade.enc.json`, criptografado com a chave pública do cofre (RSA-OAEP + AES-GCM, ver `tools/atualizar-faculdade.mjs`). Só a escola, desbloqueada com a senha, consegue ler.

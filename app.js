@@ -99,7 +99,7 @@ window.addEventListener("online", () => { if (dirty) push(); else pull().then(ch
 document.addEventListener("visibilitychange", () => {
   if (!SESS) return;
   if (document.visibilityState === "hidden"){ if (dirty){ clearTimeout(pushT); push(); } }
-  else pull().then(ch => { if (ch) render(true); });
+  else pull().then(async ch => { const f = await lerFeed(); if (ch || f) render(true); });
 });
 
 /* ===================== cálculos ===================== */
@@ -488,6 +488,7 @@ function viewFac(){
    <div class="card" style="background:var(--bg2)"><div class="row between"><b>Próximas provas</b>${ICO.cal.replace("<svg","<svg style='width:18px;height:18px;color:var(--pink)'")}</div>
     ${evs.length ? evs.map(e => { const dd = dias(e.data); const [y,m,d] = e.data.split("-"); return `<div class="ev"><div class="d">${+d}<small>${MESES[+m-1]}</small></div><div style="min-width:0;flex:1"><b>${esc(e.t)}</b><div class="small muted">${esc(e.disc)}</div></div><span class="tag ${dd<=3?"bad":"fc"}">${dd<0?"atrasada":dd===0?"hoje":dd===1?"amanhã":"em "+dd+" dias"}</span></div>`; }).join("") : `<p class="small muted" style="margin:10px 0 0">Nada marcado. Adicione provas dentro de cada disciplina.</p>`}</div>
   </div></section>
+  ${portalCard()}
   <section class="card stack" style="gap:14px"><div class="row between"><b>Período</b><div class="chips">${[1,2,3,4,5,6,7,8].map(k => `<button class="chip" aria-pressed="${sem===k}" data-sem="${k}">${k}º</button>`).join("")}</div></div>
    <form class="row" id="add-disc" style="align-items:flex-end"><label class="field" style="flex:1;min-width:200px">Nova disciplina do ${sem}º período<input id="disc-nome" placeholder="Algoritmos e lógica de programação" autocomplete="off"></label><button class="btn gold" type="submit">${ICO.plus} Adicionar</button></form>
    <div class="err" id="disc-err" role="alert"></div>
@@ -499,7 +500,7 @@ function viewFac(){
 function discCard(d){
   const m = media(d), st = m === null ? ["","Sem notas"] : m >= S.fac.min ? ["ok","Acima da média"] : ["bad","Abaixo da média"];
   const val = k => typeof (d.notas||{})[k] === "number" ? String(d.notas[k]).replace(".",",") : "";
-  return `<section class="disc stack" style="gap:16px"><div class="row between" style="flex-wrap:nowrap"><div style="min-width:0"><h3 style="font-size:1.2rem">${esc(d.nome)}</h3><span class="tag ${st[0]}" style="margin-top:6px">${st[1]}</span></div>${ring(m===null?0:m/10, 70, 8, m!==null&&m>=S.fac.min?"#3BDB8C":"#FF5E6E", m===null?"–":f1(m))}</div>
+  return `<section class="disc stack" style="gap:16px"><div class="row between" style="flex-wrap:nowrap"><div style="min-width:0"><h3 style="font-size:1.15rem">${esc(d.nome)}</h3><div class="row" style="gap:6px;margin-top:6px"><span class="tag ${st[0]}">${st[1]}</span>${portalDisc(d.nome) ? `<span class="tag fc">portal ${portalDisc(d.nome).progresso||0}%${portalDisc(d.nome).prova ? " · " + esc(portalDisc(d.nome).prova) : ""}</span>` : ""}</div></div>${ring(m===null?0:m/10, 70, 8, m!==null&&m>=S.fac.min?"#3BDB8C":"#FF5E6E", m===null?"–":f1(m))}</div>
    <div class="grades">${[["av1","AV1"],["av2","AV2"],["av3","AV3 / AVS"]].map(([k,l]) => `<label class="field">${l}<input inputmode="decimal" data-nota="${d.id}:${k}" value="${val(k)}" placeholder="0 a 10"></label>`).join("")}<label class="field">Frequência %<input inputmode="numeric" data-freq="${d.id}" value="${d.freq ?? ""}" placeholder="75"></label></div>
    <div class="grid2"><div><b class="small">Assuntos para estudar</b><div style="margin-top:8px">${(d.topicos||[]).map((t,k) => `<button class="check" role="checkbox" aria-checked="${!!t.ok}" data-top="${d.id}:${k}"><span class="box"></span><span class="t">${esc(t.t)}</span><span class="xp">+10</span></button>`).join("") || `<p class="small dim">Nenhum assunto ainda.</p>`}</div>
      <form class="row" data-add-top="${d.id}" style="margin-top:10px;flex-wrap:nowrap"><input class="input" placeholder="Ex.: estruturas de repetição" aria-label="Novo assunto"><button class="btn sm" type="submit" aria-label="Adicionar assunto">${ICO.plus}</button></form></div>
@@ -511,6 +512,60 @@ function textoFac(d){
   const linha = x => { const m = media(x); const n = x.notas||{}; return `- ${x.nome}: AV1 ${n.av1 ?? "–"}, AV2 ${n.av2 ?? "–"}, AV3 ${n.av3 ?? "–"}, média ${m===null?"–":f1(m)}, frequência ${x.freq ?? "–"}%`; };
   if (d) return `Escola do Arnold · Faculdade Estácio (Ciência da Computação)\n${linha(d)}\nAssuntos pendentes: ${(d.topicos||[]).filter(t=>!t.ok).map(t=>t.t).join(", ") || "nenhum"}\nPróximas provas: ${(d.entregas||[]).filter(t=>!t.ok).map(t=>t.t+(t.data?" ("+fmtData(t.data)+")":"")).join(", ") || "nenhuma"}\nMe ajuda a estudar essa disciplina com explicação curta e exercícios de múltipla escolha.`;
   return `Escola do Arnold · Faculdade Estácio (Ciência da Computação)\nMinhas disciplinas:\n${S.fac.discs.map(linha).join("\n") || "(nenhuma cadastrada)"}\nPróximas provas: ${S.fac.discs.flatMap(x => (x.entregas||[]).filter(e=>!e.ok).map(e => e.t+" de "+x.nome+(e.data?" em "+fmtData(e.data):""))).join("; ") || "nenhuma"}\nMonte um plano de estudo para esta semana encaixado na minha rotina (seg a qui, 20h à meia-noite; sábado e domingo leve; sexta descanso).`;
+}
+
+
+/* ===================== portal Estácio (feed criptografado) ===================== */
+async function garantirChaves(){
+  try {
+    if (!SESS || !KEY) return;
+    let c = (COFRE && COFRE !== "offline") ? COFRE : await fetchCofre();
+    if (!c || c === "offline") return; COFRE = c;
+    if (c.pub && c.privBox) return;
+    const kp = await crypto.subtle.generateKey({name:"RSA-OAEP", modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:"SHA-256"}, true, ["encrypt","decrypt"]);
+    const pub = await crypto.subtle.exportKey("jwk", kp.publicKey);
+    const priv = b64(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
+    const novo = Object.assign({}, c, {pub:{kty:pub.kty, n:pub.n, e:pub.e, alg:"RSA-OAEP-256"}, privBox: await encJSON(KEY, {priv})});
+    await putCofre(novo); COFRE = novo;
+  } catch(e){}
+}
+async function lerFeed(){
+  try {
+    if (!KEY || !COFRE || COFRE === "offline" || !COFRE.privBox) return false;
+    let r = await fetch("faculdade.enc.json?t=" + Date.now(), {cache:"no-store"});
+    if (!r.ok) r = await fetch(`https://api.github.com/repos/${HOST}/${REPO}/contents/faculdade.enc.json`, {headers:{"Accept":"application/vnd.github.raw+json"}, cache:"no-store"});
+    if (!r.ok) return false;
+    const f = await r.json(); if (!f || !f.ek) return false;
+    if (S.fac.portal && (S.fac.portal.at||0) >= f.at) return false;
+    const {priv} = await decJSON(KEY, COFRE.privBox);
+    const pk = await crypto.subtle.importKey("pkcs8", unb64(priv), {name:"RSA-OAEP", hash:"SHA-256"}, false, ["decrypt"]);
+    const raw = await crypto.subtle.decrypt({name:"RSA-OAEP"}, pk, unb64(f.ek));
+    const ak = await crypto.subtle.importKey("raw", raw, {name:"AES-GCM"}, false, ["decrypt"]);
+    const data = JSON.parse(td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(f.iv)}, ak, unb64(f.ct))));
+    data.at = f.at;
+    S.fac.portal = data;
+    const per = data.periodo || 1;
+    (data.disciplinas||[]).forEach(d => {
+      let x = S.fac.discs.find(z => z.nome.toLowerCase() === d.nome.toLowerCase());
+      if (!x){ x = {id:"d"+hash32(d.nome).toString(36), nome:d.nome, sem:per, notas:{}, freq:null, topicos:[], entregas:[], portal:true}; S.fac.discs.push(x); }
+      if (d.notas) Object.entries(d.notas).forEach(([k,v]) => { if (typeof v === "number") { x.notas = x.notas || {}; x.notas[k] = v; } });
+      (d.provas||[]).forEach(pv => { if (pv.data && !x.entregas.some(e => e.t === pv.nome)) x.entregas.push({t:pv.nome, data:pv.data, ok:false, portal:true}); });
+    });
+    S.log.unshift({t:Date.now(), d:hoje(), k:"portal", txt:"Faculdade sincronizada com o portal da Estácio", xp:0});
+    persist(); return true;
+  } catch(e){ return false; }
+}
+function portalDisc(nome){ const p = S.fac.portal; return p && (p.disciplinas||[]).find(d => d.nome.toLowerCase() === String(nome).toLowerCase()); }
+function portalCard(){
+  const p = S.fac.portal;
+  if (!p) return `<section class="card row between"><div style="min-width:0;flex:1"><span class="k">Portal Estácio</span><p class="small muted" style="margin:6px 0 0">A sincronização automática com a sala de aula da Estácio roda todo dia às 00:00. Os dados aparecem aqui depois da primeira atualização.</p></div><span class="tag">aguardando</span></section>`;
+  const dt = new Date(p.at); const R = p.requisitos || {};
+  const reqs = [["disciplinas","Disciplinas"],["aac","Horas AAC"],["documentos","Documentos"]].filter(([k]) => R[k]).map(([k,l]) => { const [v,t] = R[k]; return `<div class="stat"><div class="k">${l}</div><div class="v num">${v}<small>/${t}</small></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${t?Math.round(v/t*100):0}%;background:var(--pink)"></i></div></div>`; }).join("");
+  return `<section class="card stack" style="gap:14px"><div class="row between"><span class="k">Portal Estácio · ${esc(p.curso || "Ciência da Computação")}</span><span class="tag ok">sincronizado ${dt.toLocaleDateString("pt-BR")} ${dt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span></div>
+   ${reqs ? `<div class="stats3">${reqs}</div>` : ""}
+   <div class="list">${(p.disciplinas||[]).map(d => `<div class="li" style="grid-template-columns:minmax(0,1fr) auto"><span style="min-width:0"><b style="display:block;font-weight:600;line-height:1.3">${esc(d.nome)}</b><span class="tiny dim mono">${esc(d.modalidade||"")}${d.prova ? " · " + esc(d.prova) : ""}</span><span class="bar" style="display:block;height:5px;margin-top:8px"><i style="width:${d.progresso||0}%;background:var(--pink)"></i></span></span><span class="grade" style="color:var(--pink)">${d.progresso||0}%</span></div>`).join("")}</div>
+   ${(p.avisos||[]).length ? `<div><span class="k">Avisos</span>${p.avisos.map(v => `<div class="row" style="gap:10px;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span class="tag fc">${esc(v.tipo||"aviso")}</span><span class="small" style="min-width:0">${esc(v.texto)}</span></div>`).join("")}</div>` : ""}
+   <div class="row"><button class="btn sm" data-copy-portal="1">${ICO.copy} Pedir plano de estudo com esses dados</button></div></section>`;
 }
 
 /* ===================== PERFIL ===================== */
@@ -617,6 +672,7 @@ document.addEventListener("click", e => {
   if (d.delDisc){ if (t.dataset.confirm !== "1"){ t.dataset.confirm = "1"; t.textContent = "Toque de novo para remover"; return; } const disc = S.fac.discs.find(x => x.id === d.delDisc); act(() => { S.fac.discs = S.fac.discs.filter(x => x.id !== d.delDisc); }, "fac", `Removi ${disc.nome}`); render(true); return; }
   if (d.copyDisc) return copiar(textoFac(S.fac.discs.find(x => x.id === d.copyDisc)));
   if (d.copyFac) return copiar(textoFac());
+  if (d.copyPortal){ const p = S.fac.portal || {}; return copiar(`Escola do Arnold · Portal Estácio (sincronizado ${new Date(p.at).toLocaleString("pt-BR")})\n${(p.disciplinas||[]).map(x => `- ${x.nome}: ${x.progresso||0}% · ${x.prova||""}`).join("\n")}\nRequisitos: ${Object.entries(p.requisitos||{}).map(([k,[v,t]]) => `${k} ${v}/${t}`).join(", ")}\nMonte um plano de estudo desta semana para essas disciplinas, encaixado na minha rotina (seg a qui 20h-00h, fim de semana leve, sexta descanso).`); }
   if (d.copyBol) return copiar(textoBoletim());
   if (d.meta){ S.cfg.meta = +d.meta; persist(); render(true); return; }
   if (d.som){ S.cfg.som = !S.cfg.som; persist(); render(true); if (S.cfg.som) som("ok"); return; }
@@ -727,6 +783,7 @@ async function entrar(fazerPull){
   LOCAL = true; lastR = rota(); render();
   if (fazerPull){ setSync("busy"); const ch = await pull(); if (ch) render(true); }
   else setSync("ok");
+  await garantirChaves(); if (await lerFeed()) render(true);
 }
 
 /* ===================== início ===================== */
