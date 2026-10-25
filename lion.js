@@ -44,6 +44,7 @@
   if(root.hidden||document.hidden||!e.detail)return;
   const text=phrase(e.detail.kind,e.detail.x);
   if(panel.hidden){if(!prefs.focus)speak(text,true);}else advice.textContent=text;
+  try{if(window.EvoFeedback&&EvoFeedback.clipFor(text))EvoFeedback.say(text);}catch(err){}
   react(e.detail.kind==='levelup'||e.detail.kind==='gift'||e.detail.kind==='bonus'?'celebrate':'ok');
  });
  function open(){react('hello');panel.hidden=false;balloon.hidden=true;icon.setAttribute('aria-expanded','true');clock();fillVoices();advice.textContent=suggestion();fitPanel();$('#lion-close').focus({preventScroll:true});startMesh();initStage();}
