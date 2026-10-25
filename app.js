@@ -99,7 +99,7 @@ window.addEventListener("online", () => { if (dirty) push(); else pull().then(ch
 document.addEventListener("visibilitychange", () => {
   if (!SESS) return;
   if (document.visibilityState === "hidden"){ if (dirty){ clearTimeout(pushT); push(); } }
-  else pull().then(async ch => { const f = await lerFeed(); if (ch || f) render(true); });
+  else pull().then(async ch => { const f = await lerFeed(), g = await lerFeedCursos(); if (ch || f || g) render(true); });
 });
 
 /* ===================== cálculos ===================== */
@@ -568,6 +568,34 @@ async function lerFeed(){
     persist(); return true;
   } catch(e){ return false; }
 }
+/* feed das plataformas (Kiwify, Hotmart): cursos.enc.json = {cursos:{id:[aulas feitas por módulo]}}. Só soma, nunca apaga o que foi marcado à mão. */
+async function lerFeedCursos(){
+  try {
+    if (!KEY || !COFRE || COFRE === "offline" || !COFRE.privBox) return false;
+    let r = await fetch("cursos.enc.json?t=" + Date.now(), {cache:"no-store"});
+    if (!r.ok) r = await fetch(`https://api.github.com/repos/${HOST}/${REPO}/contents/cursos.enc.json`, {headers:{"Accept":"application/vnd.github.raw+json"}, cache:"no-store"});
+    if (!r.ok) return false;
+    const f = await r.json(); if (!f || !f.ek) return false;
+    if ((S.extFeedAt||0) >= f.at) return false;
+    const {priv} = await decJSON(KEY, COFRE.privBox);
+    const pk = await crypto.subtle.importKey("pkcs8", unb64(priv), {name:"RSA-OAEP", hash:"SHA-256"}, false, ["decrypt"]);
+    const raw = await crypto.subtle.decrypt({name:"RSA-OAEP"}, pk, unb64(f.ek));
+    const ak = await crypto.subtle.importKey("raw", raw, {name:"AES-GCM"}, false, ["decrypt"]);
+    const data = JSON.parse(td.decode(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(f.iv)}, ak, unb64(f.ct))));
+    if (!S.extSeed) semearExt();
+    let novas = 0;
+    (() => {
+      Object.entries(data.cursos || {}).forEach(([id, arr]) => { const c = extC(id); if (!c || !Array.isArray(arr)) return; const rr = extR(id);
+        arr.forEach((n, mi) => { const m = c.mods[mi]; if (!m || typeof n !== "number") return; n = Math.min(modTot(m), Math.max(0, Math.round(n))); const fz = modFeitas(c, mi); if (n <= fz) return; novas += n - fz;
+          if (m.aulas){ let falta = n - fz; for (let ai=0; ai<m.aulas.length && falta>0; ai++){ const k = mi+":"+ai; if (!rr.a[k]){ rr.a[k] = true; falta--; } } }
+          else rr.m[mi] = n; }); });
+      S.extFeedAt = f.at;
+    })();
+    if (novas){ S.log.unshift({t:Date.now(), d:hoje(), k:"import", txt:`Cursos sincronizados com Kiwify e Hotmart: +${novas} ${novas===1?"aula":"aulas"}`, xp:0}); toast(`Sincronizei ${novas} ${novas===1?"aula nova":"aulas novas"} da Kiwify e da Hotmart.`); }
+    persist(); paintTop();
+    return novas > 0;
+  } catch(e){ return false; }
+}
 function portalDisc(nome){ const p = S.fac.portal; return p && (p.disciplinas||[]).find(d => d.nome.toLowerCase() === String(nome).toLowerCase()); }
 function portalCard(){
   const p = S.fac.portal;
@@ -992,7 +1020,7 @@ async function entrar(fazerPull){
   if (fazerPull){ setSync("busy"); const ch = await pull(); if (ch) render(true); }
   else setSync("ok");
   if (!S.extSeed){ semearExt(); render(true); }
-  await garantirChaves(); if (await lerFeed()) render(true);
+  await garantirChaves(); if (await lerFeed()) render(true); if (await lerFeedCursos()) render(true);
 }
 
 /* ===================== início ===================== */

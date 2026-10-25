@@ -1,6 +1,7 @@
 // Criptografa os dados do portal da Estácio com a chave pública do cofre
 // e grava faculdade.enc.json. Só a escola, com a senha do Arnold, consegue ler.
 // Uso: node tools/atualizar-faculdade.mjs dados.json [cofre.json] [saida.json]
+// Também serve para os cursos: node tools/atualizar-faculdade.mjs cursos-dados.json cofre.json cursos.enc.json
 import { readFileSync, writeFileSync } from "node:fs";
 import { webcrypto as crypto } from "node:crypto";
 const [dadosPath, cofrePath = "cofre.json", outPath = "faculdade.enc.json"] = process.argv.slice(2);
