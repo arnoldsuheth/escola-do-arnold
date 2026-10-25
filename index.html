@@ -324,6 +324,33 @@ pre code{background:none;padding:0;color:inherit}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
+
+/* iPhone: Dynamic Island, barra inferior, sem zoom em campos */
+#quiz{scroll-margin-top:calc(76px + env(safe-area-inset-top,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:35;background:rgba(11,14,20,.96)}
+.topbar{top:env(safe-area-inset-top,0px)}
+.rail{top:env(safe-area-inset-top,0px);height:calc(100vh - env(safe-area-inset-top,0px))}
+.login{min-height:100vh;min-height:100dvh}
+.shell{min-height:100dvh}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:860px){
+  input,select,textarea,.input,.field input,.field select,.field textarea{font-size:16px}
+  .wrap{padding-top:18px}
+  h1{font-size:clamp(1.7rem,8vw,2.2rem)}
+  .head .pill{display:none}
+  .card{padding:16px}
+  .course-hero{padding:18px}
+  .stats3{gap:8px}
+  .stat{padding:10px}
+  .stat .v{font-size:1.3rem}
+  .attr{grid-template-columns:92px minmax(0,1fr) 28px}
+  .tabbar a{min-height:50px}
+  .btn{min-height:48px}
+  .opt,.check{min-height:52px}
+  .modal{padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+
 /* ilustrações */
 .il text{font-family:var(--f-b);font-size:16px;fill:var(--ink)}
 .il .tsm{font-size:13px;fill:var(--ink2)}
@@ -349,8 +376,8 @@ pre code{background:none;padding:0;color:inherit}
 <div id="app"></div>
 <canvas id="confetti" hidden></canvas>
 <noscript>Ative o JavaScript para usar o Evolution Lab.</noscript>
-<script src="content.js?v=6"></script>
-<script src="ilus.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="content.js?v=7"></script>
+<script src="ilus.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
