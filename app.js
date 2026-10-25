@@ -1315,7 +1315,8 @@ window.EvoLion = {
     const provas = S.fac.discs.flatMap(d => (d.entregas || []).filter(e => !e.ok && e.data).map(e => ({id:d.id + ":" + e.t, titulo:e.t, disciplina:facCurto(d.nome), dias:Math.round((new Date(e.data + "T12:00") - new Date(hoje() + "T12:00")) / 864e5)})));
     return {provas, xpHoje:diasAtivos()[hoje()] || 0, sequencia:streak(), meta:S.cfg.meta || 100};
   } catch(e){ return null; } },
-  help: () => copiar(textoAjuda())
+  help: () => copiar(textoAjuda()),
+  xp: () => { try { return xpTotal() + xpHobby(); } catch(e){ return null; } }
 };
 
 const FRASE_DIA = () => { const h = hash32(hoje()); const pool = h % 10 < 7 ? FILOSOFOS : FRASES; return pool[Math.floor(h / 10) % pool.length]; };

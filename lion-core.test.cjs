@@ -20,3 +20,23 @@ test('smart reminders use real progress, once per day, never on Friday or while 
  assert.equal(C.smart({provas:[],xpHoje:0,sequencia:5},C.settings({auto:false}),{},night),null);
 });
 test('goal nudge appears only when close to the daily goal',()=>{const p=C.settings({}),t=new Date('2026-10-26T21:00:00Z');assert.match(C.goalNudge({xpHoje:70,meta:100},p,{},t).text,/30/);assert.equal(C.goalNudge({xpHoje:10,meta:100},p,{},t),null);assert.equal(C.goalNudge({xpHoje:100,meta:100},p,{},t),null);});
+
+test('Lion Tamagotchi: desgaste calmo, pausa na sexta e nunca abaixo de zero',()=>{
+ const seg=Date.UTC(2026,9,26,12,0),sex=Date.UTC(2026,9,23,12,0);
+ let p=C.petTick({},seg,{});p=C.petTick(p,seg+10*3600000,{});assert.deepEqual([p.fome,p.sede,p.energia],[65,60,60]);
+ let f=C.petTick({},sex,{});f=C.petTick(f,sex+8*3600000,{});assert.equal(f.fome,80);assert.equal(f.sede,80);
+ let q=C.petTick({},seg,{});q=C.petTick(q,seg+24*3600000*30,{});assert.ok(q.fome>=0&&q.sede>=0&&q.energia>=0);
+ let n=C.petTick({},seg,{focus:true});n=C.petTick(n,seg+8*3600000,{focus:true});assert.equal(n.fome,80);
+});
+test('Lion Tamagotchi: ração a cada 40 XP, limite de 10 e sem retroativo',()=>{
+ let r=C.petRation({},500);assert.equal(r.given,0);assert.equal(r.pet.xpSeen,500);
+ r=C.petRation(r.pet,590);assert.equal(r.given,2);assert.equal(r.pet.racao,4);assert.equal(r.pet.xpSeen,580);
+ r=C.petRation({racao:10,xpSeen:0},400);assert.equal(r.given,0);assert.equal(r.pet.racao,10);
+});
+test('Lion Tamagotchi: alimentar, beber, soneca e humor',()=>{
+ assert.equal(C.petFeed({fome:50,racao:1}).pet.fome,80);assert.equal(C.petFeed({fome:50,racao:0}).why,'sem-racao');assert.equal(C.petFeed({fome:99,racao:3}).why,'cheio');
+ assert.equal(C.petDrink({sede:30}).pet.sede,70);
+ const p={energia:10,napDay:'2026-10-26',napN:3};assert.equal(C.petNap(p,'2026-10-26').why,'limite');assert.equal(C.petNap(p,'2026-10-27').ok,true);assert.equal(C.petNap({energia:95},'x').why,'sem-sono');
+ assert.equal(C.petMood({fome:20,sede:80,energia:80},14,'x').state,'fome');assert.equal(C.petMood({fome:80,sede:10,energia:80},14,'x').label,'Com sede');
+ assert.equal(C.petMood({fome:80,sede:80,energia:80},23,'x').state,'sono');assert.equal(C.petMood({fome:80,sede:80,energia:80},14,'x').state,'feliz');
+});
