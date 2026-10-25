@@ -42,3 +42,7 @@ Medidores circulares de 20 blocos aplicados somente em Progresso por área (Clau
 ## Lion Cristal
 
 Mascote selecionado com arte transparente, movimento discreto, botão móvel e janela de apoio arrastável. Balão de fala acima do mascote: saudações pela data e hora de Brasília, sugestões de estudo conforme página/período do dia e missões concluídas; água a cada 20 minutos e caminhada a cada 1 hora de aba visível e em foco. A janela só abre por clique. Lembretes podem ser silenciados; animação respeita movimento reduzido. Regras locais, sem IA conectada, sem custos de API ou notificações fora da plataforma. Preferências locais separadas do progresso; nenhuma alteração no XP, árvores ou cursos. Testes de regras de horário, contexto e lembretes adicionados (13 testes no total).
+
+## Adaptação a celular e transparência do Lion
+
+Ajustados área visível, rotação, limites de arraste, balão acima/abaixo do mascote, menu inferior, área segura, fechamento fixo e botões para toque. Layout geral em colunas no celular, formulários e rolagem responsivos; árvores e pontuação preservadas. Incluída a opção Como o Lion funciona na janela, com esclarecimento de que não acessa esta conversa do ChatGPT e que as preferências e os contadores não são compartilhados entre aparelhos. Guia LION-COMO-FUNCIONA.md adicionado. Verificações de limites em 320×568, 390×844 e 844×390; 16 testes automatizados passam.

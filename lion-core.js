@@ -4,7 +4,7 @@
   const fields=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(now).map(p=>[p.type,p.value]));
   return {hour:Number(fields.hour),day:fields.weekday,key:`${fields.year}-${fields.month}-${fields.day}`,date:new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',weekday:'long',day:'numeric',month:'long'}).format(now),time:new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(now)};
  }
- function greeting(now){const c=clock(now);return `${c.hour<12?'Bom dia':c.hour<18?'Boa tarde':'Boa noite'}! Sou o Lion Cristal. Hoje é ${c.date}. Vamos evoluir juntos?`;}
+ function greeting(now){const c=clock(now);return `${c.hour>=6&&c.hour<12?'Bom dia':c.hour>=12&&c.hour<18?'Boa tarde':'Boa noite'}! Sou o Lion Cristal. Hoje é ${c.date}. Vamos evoluir juntos?`;}
  function suggestion(hash,done,now){
   const c=clock(now);
   if(c.hour<6)return 'Já é madrugada. Que tal anotar sua próxima tarefa e dar espaço ao descanso?';
@@ -20,5 +20,7 @@
  }
  function settings(value){return {auto:value?.auto!==false,water:20,walk:60,motion:value?.motion!==false};}
  function due(elapsed,last,prefs){if(!prefs.auto)return null;if(elapsed-last.walk>=prefs.walk*60000)return 'walk';if(elapsed-last.water>=prefs.water*60000)return 'water';if(elapsed-last.study>=25*60000)return 'study';return null;}
- return {clock,greeting,suggestion,settings,due};
+ function clampBox(x,y,width,height,bounds){return {x:Math.max(bounds.left,Math.min(bounds.right-width,x)),y:Math.max(bounds.top,Math.min(bounds.bottom-height,y))};}
+ function bubblePosition(anchor,width,height,bounds){const top=anchor.top-height-12;return clampBox(anchor.right-width,top>=bounds.top?top:anchor.bottom+12,width,height,bounds);}
+ return {clock,greeting,suggestion,settings,due,clampBox,bubblePosition};
 });

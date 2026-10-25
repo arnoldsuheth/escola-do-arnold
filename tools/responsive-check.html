@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Evolution Lab · Conferência responsiva</title>
+<style>body{margin:0;background:#0B0E14;color:#E6E8EE;font:14px system-ui}header{padding:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}button,a{color:#E6E8EE;background:#171D2B;border:1px solid #3D4C67;border-radius:8px;padding:10px;text-decoration:none;font:inherit;cursor:pointer}main{padding:12px;overflow-x:auto}iframe{display:block;border:1px solid #3D4C67;border-radius:12px;margin:auto;background:#0B0E14}small{color:#A3ABBD}</style>
+<header><strong>Conferência responsiva</strong><button data-width="320" data-height="568">320 × 568</button><button data-width="390" data-height="844">390 × 844</button><button data-width="844" data-height="390">844 × 390</button><a href="../index.html#hoje">Abrir plataforma</a><small id="size">390 × 844</small></header>
+<main><iframe id="mobileFrame" title="Evolution Lab em tela de celular" src="../index.html#hoje" width="390" height="844"></iframe></main>
+<script>const frame=document.getElementById('mobileFrame');document.querySelectorAll('[data-width]').forEach(b=>b.addEventListener('click',()=>{frame.width=b.dataset.width;frame.height=b.dataset.height;document.getElementById('size').textContent=b.dataset.width+' × '+b.dataset.height;}));</script>
+</html>
