@@ -995,7 +995,7 @@ document.addEventListener("click", e => {
 function svgArvore(nodes, edges, nome){
   const N = {}; nodes.forEach(n => N[n.id] = n); const prox = nodes.find(n => n.p < 1 && !n.ini);
   let s = `<svg class="tree tree-wide" viewBox="0 0 600 176" role="img" aria-label="${esc(nome)}">`;
-  edges.forEach(([a,b]) => { const A = N[a], B = N[b], on = A.p >= 1; s += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
+  edges.forEach(([a,b]) => { const A = N[a], B = N[b], on = A.p >= 1 || A.ini; s += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
   nodes.forEach(n => { const r = 22, c = 2*Math.PI*r, front = prox && prox.id === n.id;
     if (n.p >= 1) s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#22D3EE"/><text x="${n.x}" y="${n.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:700">${esc(n.cod)}</text>`;
     else { s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#0E131C;stroke:${front?"#7C5CFF":"#2E3748"}" stroke-width="2" ${front?'stroke-dasharray="4 4"':""}/>`;
@@ -1006,8 +1006,8 @@ function svgArvore(nodes, edges, nome){
 }
 function listaArvore(nodes){
   const prox = nodes.find(n => n.p < 1 && !n.ini);
-  return `<div class="tree-list">${nodes.map(n => { const st = n.p >= 1 ? "dominado" : prox && prox.id === n.id ? (n.p > 0 ? "em progresso" : "próximo") : n.p > 0 ? "em progresso" : "bloqueado";
-    return `<div class="tn ${n.p>=1?"ok":prox && prox.id===n.id?"cur":n.p>0?"mid":"lock"}">${ring(n.p, 40, 5, n.p>=1?"#22D3EE":n.p>0?"#7C5CFF":"transparent", n.cod)}<span style="min-width:0;flex:1"><b>${esc(n.nome)}</b><span class="tiny dim" style="display:block">${st}</span></span><span class="mono small ${n.p>=1?"okc":"dim"}">${Math.round(n.p*100)}%</span></div>`; }).join("")}</div>`;
+  return `<div class="tree-list">${nodes.map(n => { const st = n.ini && n.p < 1 ? "em andamento" : n.p >= 1 ? (n.ini ? "concluído" : "dominado") : prox && prox.id === n.id ? (n.p > 0 ? "em progresso" : "próximo") : n.p > 0 ? "em progresso" : "bloqueado";
+    return `<div class="tn ${n.p>=1||n.ini?"ok":prox && prox.id===n.id?"cur":n.p>0?"mid":"lock"}">${ring(n.p, 40, 5, n.p>=1||n.ini?"#22D3EE":n.p>0?"#7C5CFF":"transparent", n.cod)}<span style="min-width:0;flex:1"><b>${esc(n.nome)}</b><span class="tiny dim" style="display:block">${st}</span></span><span class="mono small ${n.p>=1?"okc":n.ini?"":"dim"}">${Math.round(n.p*100)}%</span></div>`; }).join("")}</div>`;
 }
 function cardArvore(t, k){
   const nn = t.nodes.filter(n => !n.ini), prox = nn.find(n => n.p < 1), total = nn.length ? nn.reduce((a,n) => a + n.p, 0) / nn.length : 0;
@@ -1036,9 +1036,8 @@ function arvoreFac(){
   const edges = [];
   lista.forEach((n,i) => { const row = i < metade ? 0 : 1, col = row ? i - metade : i; nodes.push({id:"d"+i, cod:facCod(n), nome:facCurto(n), x:xs(col), y: row ? 128 : 40, p:prog(n)}); });
   [0,1].forEach(row => { const ids = nodes.slice(1).filter(n => n.y === (row ? 128 : 40)).map(n => n.id); if (!ids.length) return; edges.push(["ini", ids[0]]); for (let k=1;k<ids.length;k++) edges.push([ids[k-1], ids[k]]); edges.push([ids[ids.length-1], "fim"]); });
-  nodes[0].p = nodes.slice(1).length ? Math.min(.99, nodes[0].p) : 0;
   nodes.push({id:"fim", cod:(per+1)+"º", nome:"Período "+(per+1), x:560, y:84, p: nodes.slice(1).length && nodes.slice(1).every(n => n.p >= 1) ? 1 : 0});
-  const ini = nodes[0]; ini.p = 1; ini.ini = true; /* o período em curso já está destravado */
+  const ini = nodes[0]; ini.ini = true; /* período em curso: progresso = média das disciplinas, já destravado */
   return {nome:"Faculdade", href:"#fac", nodes, edges, fim:"Período concluído. Rumo ao próximo!", dica: n => n.id === "fim" ? "feche todas as disciplinas" : "acompanhe pelo portal"};
 }
 function arvoreDesign(){
