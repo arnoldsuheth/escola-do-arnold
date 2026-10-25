@@ -124,8 +124,10 @@ function xpTotal(){
   x += Object.keys(S.bonus).length * 50;
   return x;
 }
-const RANKS = [[0,"Calouro"],[300,"Aprendiz"],[800,"Explorador"],[1500,"Construtor"],[2500,"Dev Júnior"],[3800,"Dev Pleno"],[5400,"Dev Sênior"],[7400,"Arquiteto"],[10000,"Lenda"]];
-const RANK_COR = ["#9AA3C0","#58B4FF","#3DDBB5","#3BDB8C","#FFC94A","#FF8A5B","#FF5E9A","#8D7BFF","#FFE08A"];
+const RANKS = [[0,"Estagiário"],[300,"Trainee"],[800,"Júnior I"],[1500,"Júnior II"],[2500,"Pleno I"],[3800,"Pleno II"],[5400,"Sênior"],[7400,"Staff"],[10000,"Principal"]];
+const CARREIRA = ["Estagiário","Júnior","Pleno","Sênior","Staff"];
+const carreiraIdx = n => n <= 2 ? 0 : n <= 4 ? 1 : n <= 6 ? 2 : n === 7 ? 3 : 4;
+const RANK_COR = ["#6E7891","#22D3EE","#22D3EE","#34D399","#A78BFA","#A78BFA","#F59E0B","#F472B6","#F472B6"];
 function nivel(v){ v = v ?? xpTotal(); let i = 0; RANKS.forEach((r,k) => { if (v >= r[0]) i = k; }); const cur = RANKS[i], nx = RANKS[i+1]; return {n:i+1, nome:cur[1], cor:RANK_COR[i], xp:v, prox: nx ? nx[0] : null, proxNome: nx ? nx[1] : null, p: nx ? (v-cur[0])/(nx[0]-cur[0]) : 1}; }
 function notaGeral(){ const ns = [claudeStats().nota, progStats().nota, facStats().nota].filter(x => x !== null); return ns.length ? ns.reduce((a,b)=>a+b,0)/ns.length : null; }
 function xpDia(d){ return S.log.filter(l => l.d === d).reduce((a,l) => a + (l.xp||0), 0); }
@@ -155,6 +157,35 @@ function missoesDia(){
 }
 function missoesCompletas(){ const m = missoesDia(); return m.list.length && m.list.every(q => feitoHoje(q.k)); }
 
+
+function rngProg(a,b){ let t = 0, d = 0; for (let i=a;i<=b;i++){ t++; if (S.prog[i] && S.prog[i].done) d++; } return t ? d/t : 0; }
+function atributos(){
+  const fs = facStats();
+  const fe = (rngProg(0,24)*25 + rngProg(40,50)*11) / 36;
+  const cl = CURSO_CLAUDE.reduce((s,x) => { const r = S.claude[x.id]; return s + (r && r.done ? .6 + .4*pct(r) : 0); }, 0) / CURSO_CLAUDE.length;
+  const logica = Math.min(1, rngProg(29,39)*.7 + (fs.tarefas ? fs.tdone/fs.tarefas : 0)*.3);
+  const fac = fs.discs ? fs.p*.6 + (fs.ap/fs.discs)*.4 : 0;
+  return [["Lógica",logica,"#22D3EE"],["Front-end",fe,"#A78BFA"],["IA / Claude",cl,"#F59E0B"],["Git",rngProg(25,28),"#34D399"],["Faculdade",fac,"#F472B6"]].map(([n,v,c]) => [n, Math.round(v*100), c]);
+}
+const TREE = [{id:"HTML",a:0,b:8,x:40,y:75},{id:"CSS",a:9,b:24,x:180,y:75},{id:"Git",a:25,b:26,x:310,y:36},{id:"JS",a:29,b:39,x:310,y:114},{id:"GitHub",a:27,b:28,x:440,y:36},{id:"DOM",a:40,b:45,x:440,y:114},{id:"v1.0",a:46,b:50,x:560,y:75}];
+const TREE_E = [["HTML","CSS"],["CSS","Git"],["CSS","JS"],["Git","GitHub"],["JS","DOM"],["GitHub","v1.0"],["DOM","v1.0"]];
+function arvore(){
+  const N = {}; TREE.forEach(t => N[t.id] = Object.assign({p:rngProg(t.a,t.b)}, t));
+  const prox = TREE.find(t => N[t.id].p < 1);
+  let svg = `<svg class="tree" viewBox="0 0 600 150" role="img" aria-label="Árvore de tecnologias">`;
+  TREE_E.forEach(([s,d]) => { const A = N[s], B = N[d], on = A.p === 1; svg += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
+  TREE.forEach(t => { const n = N[t.id], r = t.id.length > 4 ? 26 : 24, c = 2*Math.PI*r;
+    if (n.p === 1) svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:#22D3EE"/><text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:600">${t.id}</text>`;
+    else { const front = prox && prox.id === t.id;
+      svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:#0E131C;stroke:${front?"#7C5CFF":"#2E3748"}" stroke-width="2" ${front?'stroke-dasharray="4 4"':""}/>`;
+      if (n.p > 0) svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:none;stroke:#22D3EE" stroke-width="3" stroke-dasharray="${c*n.p} ${c}" transform="rotate(-90 ${t.x} ${t.y})"/>`;
+      svg += `<text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:${n.p>0||front?"#E6E8EE":"#5A6377"}">${t.id}</text>`; } });
+  svg += `</svg>`;
+  let txt = "Árvore completa. Você publicou a BLESSAINT 1.0.";
+  if (prox){ const aula = PROG_AULAS.find(z => z[0] >= prox.a && z[0] <= prox.b && !(S.prog[z[0]] && S.prog[z[0]].done)); txt = `Próximo destravamento: <b style="color:var(--text)">${prox.id}</b> · faltam ${PROG_AULAS.filter(z => z[0] >= prox.a && z[0] <= prox.b && !(S.prog[z[0]] && S.prog[z[0]].done)).length} aulas (próxima: Aula ${aula[0]})`; }
+  return {svg, txt};
+}
+
 /* ===================== ação com XP ===================== */
 function act(fn, k, txt, ev){
   const before = xpTotal(), lvB = nivel(before).n;
@@ -167,7 +198,7 @@ function act(fn, k, txt, ev){
   const total = xpTotal(), lvA = nivel(total);
   if (delta > 0){ floatXP("+" + delta + " XP", ev); som("xp"); }
   if (lvA.n > lvB) setTimeout(() => levelUp(lvA), 500);
-  else if (bonusAgora) setTimeout(() => modal(`<div style="width:96px">${ICON_SVG.trophy}</div><h2>Missões do dia completas</h2><p class="muted">Você fechou todas as missões de hoje e ganhou <b style="color:var(--gold)">+50 XP</b> de bônus.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
+  else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+50 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
   paintTop();
   return delta;
 }
@@ -179,7 +210,7 @@ function som(tipo){
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     const notas = {ok:[660,880], bad:[220,180], xp:[880,1320], up:[523,659,784,1047], done:[523,784,1047]}[tipo] || [600];
-    notas.forEach((f,i) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = tipo === "bad" ? "sawtooth" : "triangle"; o.frequency.value = f; const t0 = actx.currentTime + i*0.09; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(tipo === "bad" ? 0.05 : 0.12, t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22); o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0+0.25); });
+    notas.forEach((f,i) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = "sine"; o.frequency.value = f; const t0 = actx.currentTime + i*0.09; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(tipo === "bad" ? 0.04 : 0.07, t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22); o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0+0.25); });
     if (navigator.vibrate) navigator.vibrate(tipo === "bad" ? [40,40,40] : 25);
   } catch(e){}
 }
@@ -189,7 +220,7 @@ function floatXP(txt, ev){
   el.style.left = (x - 40) + "px"; el.style.top = (y - 30) + "px"; document.body.appendChild(el); setTimeout(() => el.remove(), 1500);
 }
 function confetti(){
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  return;
   const c = $("#confetti"); c.hidden = false; const ctx = c.getContext("2d"); c.width = innerWidth; c.height = innerHeight;
   const cores = ["#FFC94A","#FF8A5B","#3DDBB5","#8D7BFF","#58B4FF","#EADDC3","#FF5E9A"];
   const ps = Array.from({length:160}, () => ({x:innerWidth/2 + (Math.random()-.5)*120, y:innerHeight*0.35, vx:(Math.random()-.5)*14, vy:-Math.random()*14-4, s:Math.random()*8+4, r:Math.random()*6, vr:(Math.random()-.5)*.3, c:cores[Math.floor(Math.random()*cores.length)]}));
@@ -200,7 +231,7 @@ let toastT;
 function toast(msg){ let t = $(".toast"); if (!t){ t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status"); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
 function modal(html, festa){ fecharModal(); const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div class="modal-in" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m || e.target.closest("[data-close]")) fecharModal(); }); if (festa){ confetti(); som("done"); } const b = $("button", m); if (b) b.focus(); }
 function fecharModal(){ $$(".modal, .sheet").forEach(m => m.remove()); }
-function levelUp(lv){ som("up"); modal(`${badge(lv, 120)}<span class="eyebrow">Subiu de nível</span><h2 style="font-size:2rem">Nível ${lv.n}: ${esc(lv.nome)}</h2><p class="muted">${lv.prox ? `Próximo: ${esc(lv.proxNome)} com ${lv.prox} XP.` : "Você chegou ao topo. Lenda."}</p><button class="btn gold" data-close>Bora continuar</button>`, true); }
+function levelUp(lv){ som("up"); modal(`${badge(lv, 96)}<span class="eyebrow">Promoção · lvl ${lv.n}</span><h2 style="font-size:1.8rem">Agora você é <span class="gtext">${esc(lv.nome)}</span></h2><p class="muted">${lv.prox ? `Próximo cargo: ${esc(lv.proxNome)} com ${lv.prox} xp.` : "Topo da carreira: Principal."}</p><button class="btn gold" data-close>Continuar</button>`, true); }
 function copiar(txt){
   const ok = () => toast("Copiado. Cole na conversa com o Claude.");
   const fb = () => { const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); let r = false; try { r = document.execCommand("copy"); } catch(e){} ta.remove(); if (r) ok(); else modal(`<h3>Copie o texto</h3><textarea class="input" style="min-height:180px">${esc(txt)}</textarea><button class="btn" data-close>Fechar</button>`); };
@@ -235,27 +266,28 @@ const ICON_SVG = {
   trophy: `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="tg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FFE08A"/><stop offset="1" stop-color="#FFAE1F"/></linearGradient></defs><path d="M18 8h28v14c0 9-6 16-14 16s-14-7-14-16z" fill="url(#tg)"/><path d="M18 12H8c0 8 4 13 11 14M46 12h10c0 8-4 13-11 14" fill="none" stroke="#FFC94A" stroke-width="4"/><rect x="28" y="38" width="8" height="10" fill="#FFAE1F"/><rect x="18" y="48" width="28" height="8" rx="3" fill="#C98200"/></svg>`
 };
 function flame(cold){ return `<svg class="flame ${cold?"cold":""}" viewBox="0 0 64 76" aria-hidden="true"><defs><linearGradient id="fg1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FFD25A"/><stop offset="1" stop-color="#FF4D1F"/></linearGradient><linearGradient id="fg2" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FFF4C2"/><stop offset="1" stop-color="#FFB13B"/></linearGradient></defs><path class="f1" d="M32 2C36 16 54 24 54 46c0 16-10 28-22 28S10 62 10 46c0-10 5-17 10-22 1 8 5 12 9 13-3-12 0-24 3-35z" fill="url(#fg1)"/><path class="f2" d="M32 34c3 7 12 11 12 22 0 8-5 14-12 14s-12-6-12-14c0-6 4-9 6-11 0 4 2 6 4 6-1-6 0-12 2-17z" fill="url(#fg2)"/></svg>`; }
-function badge(lv, size=64){ const c = lv.cor; return `<svg class="lvlbadge" style="width:${size}px;height:${size*1.12}px" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="bg${lv.n}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="#1C2440"/></linearGradient></defs><path d="M32 2l28 16v36L32 70 4 54V18z" fill="url(#bg${lv.n})" stroke="${c}" stroke-width="2.5"/><path d="M32 10l21 12v28L32 62 11 50V22z" fill="#0F1424" opacity=".55"/><text x="32" y="44" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:22px;fill:#fff">${lv.n}</text></svg>`; }
-function starRow(n, size=16){ return `<span class="stars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=n?"#FFC94A":"rgba(255,255,255,.14)"}"/></svg>`).join("")}</span>`; }
+function badge(lv, size=64){ const c = lv.cor; return `<svg class="lvlbadge" style="width:${size}px;height:${size*1.12}px" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="bg${lv.n}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><path d="M32 2l28 16v36L32 70 4 54V18z" fill="#0E131C" stroke="url(#bg${lv.n})" stroke-width="3"/><text x="32" y="44" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:22px;fill:#fff">${lv.n}</text></svg>`; }
+function starRow(n, size=16){ return `<span class="stars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=n?"#22D3EE":"rgba(255,255,255,.12)"}"/></svg>`).join("")}</span>`; }
 function ring(p, size, stroke, color, label){ const r = (size-stroke)/2, c = 2*Math.PI*r, v = Math.max(0, Math.min(1, p)); return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="${stroke}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c*v} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/>${label ? `<text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" style="font-size:${size/4.4}px">${label}</text>` : ""}</svg>`; }
-const CREST_BIG = `<svg class="crest" viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="cg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#FFD66B"/><stop offset="1" stop-color="#FF7A2F"/></linearGradient></defs><path d="M40 3l33 13v22c0 20-14 33-33 39C21 71 7 58 7 38V16z" fill="url(#cg)"/><path d="M40 10l26 10v18c0 16-11 27-26 32C25 65 14 54 14 38V20z" fill="#151B30"/><text x="40" y="47" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:22px;fill:#FFC94A">EA</text></svg>`;
+const CREST_BIG = `<svg class="crest" viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="cg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><rect x="2" y="2" width="76" height="76" rx="22" fill="url(#cg)"/><text x="40" y="50" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:28px;fill:#0B0E14">AS</text></svg>`;
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Hoje","hoje"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["perfil","Perfil","perfil"]];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
 const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
-  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Escola do Arnold</b><small>sessão noturna de estudo</small></span></a>
+  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Escola do Arnold</b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
    ${NAV.map(([k,t,i]) => `<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
-  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Escola do Arnold</b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
+  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${CREST_BIG.replace(/"cg"/,'"cg2"').replace("url(#cg)","url(#cg2)")}<span><b>Escola do Arnold</b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
   <nav class="tabbar" aria-label="Seções">${NAV.map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
 }
 function paintTop(){
   const p = $("#pills"); if (!p) return; const lv = nivel(), st = streak(), hx = xpDia(hoje());
-  p.innerHTML = `<a class="pill fire ${hx>0?"":"cold"}" href="#hoje" title="Dias seguidos">${flameMini()}${st}</a><a class="pill xp" href="#perfil" title="XP total">${ICO.bolt}${lv.xp}</a><a class="pill lvl" href="#perfil" title="Nível">Nv ${lv.n} · ${esc(lv.nome)}</a>`;
+  p.innerHTML = `<a class="pill fire ${hx>0?"":"cold"}" href="#hoje" title="Dias seguidos">${flameMini()}${st} ${st===1?"dia":"dias"}</a><a class="pill xp" href="#perfil" title="XP total">${lv.xp} xp</a><a class="pill lvl" href="#perfil" title="Cargo">lvl ${lv.n} · ${esc(lv.nome)}</a>`;
+  const bs = $("#brandsub"); if (bs) bs.textContent = `lvl ${lv.n} · ${lv.nome}`;
 }
 const flameMini = () => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1.5 5 7 7.5 7 14a7 7 0 0 1-14 0c0-3.5 2-6 3.5-7.3.3 2.6 1.6 4 3 4.3C10.6 9 11 5 12 2z" fill="currentColor"/></svg>`;
 
@@ -288,44 +320,36 @@ function saudacao(){
 function viewHoje(){
   const lv = nivel(), st = streak(), hx = xpDia(hoje()), meta = S.cfg.meta, sd = saudacao(), md = missoesDia();
   const cs = claudeStats(), ps = progStats(), fs = facStats(), pc = proxClaude(), pp = proxProg();
-  const at = diasAtivos();
+  const at = diasAtivos(), ci = carreiraIdx(lv.n), arv = arvore(), attrs = atributos(), med = medalhas();
   const seg = new Date(); seg.setDate(seg.getDate() - ((seg.getDay()+6)%7));
-  const semana = [...Array(7)].map((_,i) => { const d = new Date(seg); d.setDate(seg.getDate()+i); const k = iso(d); return `<span class="${at[k]?"on":""} ${d.getDay()===5&&!at[k]?"rest":""} ${k===hoje()?"today":""}" title="${fmtData(k)}">${DIAS[d.getDay()]}</span>`; }).join("");
-  const fr = FRASES[Math.floor(Date.now()/864e5) % FRASES.length];
+  const NOMES = ["dom","seg","ter","qua","qui","sex","sáb"];
+  const semana = [...Array(7)].map((_,i) => { const d = new Date(seg); d.setDate(seg.getDate()+i); const k = iso(d); return `<div><i class="${at[k]?"on":""} ${d.getDay()===5&&!at[k]?"rest":""} ${k===hoje()?"today":""}" title="${fmtData(k)}: ${at[k]||0} xp"></i><small>${NOMES[d.getDay()]}</small></div>`; }).join("");
   const feitas = md.list.filter(q => feitoHoje(q.k)).length;
+  const conq = med.filter(m => m[2]).concat(med.filter(m => !m[2])).slice(0,4);
+  const abrev = t => t.split(" ").map(w => w[0]).join("").slice(0,3).toUpperCase();
+  const prox = pc ? `#aula-${pc.id}` : "#perfil";
   return `<div class="stack fade">
-  <section class="hero"><div class="hero-grid">
-    <div class="stack" style="gap:12px"><span class="eyebrow" style="color:rgba(255,255,255,.55)">${new Date().toLocaleDateString("pt-BR",{weekday:"long", day:"numeric", month:"long"})}</span>
-      <div class="greet">${sd.oi}, <em>${esc(S.nome)}</em>.</div><p class="muted" style="margin:0;font-size:1.05rem">${sd.sub}</p>
-      <div class="row" style="margin-top:6px">${pc ? `<a class="btn gold" href="#aula-${pc.id}">${ICO.arrow} Continuar: ${esc(nomeItem(pc))}</a>` : `<a class="btn gold" href="#perfil">Ver meu certificado</a>`}${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div>
-    </div>
-    <div class="stack" style="gap:16px">
-      <div class="streak">${flame(hx===0)}<div><b class="num">${st}</b><span class="muted small">${st===1?"dia seguido":"dias seguidos"}${hx===0?" · estude hoje para manter":""}</span><div class="week">${semana}</div></div></div>
-      <div class="goal">${ring(hx/meta, 74, 9, "#FFC94A", `${Math.min(100,Math.round(hx/meta*100))}%`)}<div><b>Meta do dia</b><div class="muted small num">${hx} de ${meta} XP hoje</div></div></div>
-    </div>
-  </div></section>
-
-  <div class="grid2">
-   <section class="card"><div class="row between"><h3>${md.rest ? "Dia de descanso" : "Missões do dia"}</h3><span class="tag gold">${feitas}/${md.list.length}${S.bonus[hoje()] ? " · bônus ganho" : " · bônus +50"}</span></div>
-    <div style="margin-top:14px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ICO[q.ic] || ICO.star}</span><span style="min-width:0"><b style="display:block;line-height:1.25">${esc(q.t)}</b><span class="small muted">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp}</span></a>`; }).join("") || `<p class="muted">Tudo concluído. Você zerou a escola!</p>`}</div>
-   </section>
-   <section class="card glow"><div class="row" style="gap:16px;flex-wrap:nowrap">${badge(lv, 72)}<div style="flex:1;min-width:0"><span class="eyebrow">Nível ${lv.n}</span><h2 style="font-size:1.6rem">${esc(lv.nome)}</h2>
-     <div class="bar" style="margin:10px 0 6px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="small muted num">${lv.xp} XP${lv.prox ? ` · faltam ${lv.prox-lv.xp} para ${esc(lv.proxNome)}` : ""}</div></div></div>
-     <div class="row" style="margin-top:16px;gap:10px">${[["Nota geral", f1(notaGeral())],["Aulas feitas", cs.done+ps.done],["Título Claude", claudeTitulo()]].map(([a,b]) => `<div style="flex:1;min-width:90px;padding:12px;border-radius:14px;background:var(--bg2);border:1px solid var(--line)"><div class="tiny dim" style="font-weight:800;text-transform:uppercase;letter-spacing:.08em">${a}</div><div style="font-family:var(--f-d);font-weight:800;font-size:1.05rem;margin-top:4px">${esc(b)}</div></div>`).join("")}</div>
-   </section>
-  </div>
-
-  <div class="grid3">
-   ${courseCard("#claude","c-cl","ia","Curso de Claude","do zero ao avançado", cs.p, "#FF8A5B", `${cs.done}/${cs.total} etapas · ${claudeTitulo()}`, cs.nota)}
-   ${courseCard("#prog","c-pg","code","Programação","site BLESSAINT", ps.p, "#EADDC3", `${ps.done}/${ps.total} aulas`, ps.nota)}
-   ${courseCard("#fac","c-fc","fac","Faculdade Estácio","Ciência da Computação", fs.p, "#3DDBB5", fs.discs ? `${fs.discs} disciplinas · ${fs.ap} aprovadas` : "Cadastre suas disciplinas", fs.nota)}
-  </div>
-
-  <div class="grid2">
-   <section class="card"><div class="row between"><h3>Seu fogo nas últimas semanas</h3><span class="small muted">${Object.keys(at).length} dias ativos</span></div><div style="margin-top:14px">${heatmap(16)}</div></section>
-   <section class="card" style="display:flex;flex-direction:column;justify-content:center;gap:10px"><span class="eyebrow">Frase do dia</span><p class="quote" style="margin:0">“${esc(fr[0])}”</p>${fr[1] ? `<span class="small" style="color:var(--gold);font-weight:800">${esc(fr[1])}</span>` : ""}</section>
-  </div>
-  </div>`;
+  <div class="head"><div><h1>${sd.oi}, <span>${esc(S.nome)}</span></h1><div class="muted small" style="margin-top:4px">${new Date().toLocaleDateString("pt-BR",{weekday:"long"})} · ${sd.sub}</div></div>
+   <span class="pill">nota geral ${f1(notaGeral())}</span></div>
+  <div class="dash">
+   <div class="stack">
+    <section class="card"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
+     <div class="career">${CARREIRA.map((c,i) => `${i ? `<i class="${i<=ci?"on":""}"></i>` : ""}<span class="${i<ci?"on":i===ci?"cur":""}">${c}</span>`).join("")}</div>
+     <div class="stats3"><div class="stat"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat"><div class="k">aulas</div><div class="v num">${cs.done+ps.done}<small>/${cs.total+ps.total}</small></div></div><div class="stat"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
+     <div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${lv.prox-lv.xp} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div></section>
+    <section class="card"><span class="k">Árvore de tecnologias · programação</span><div style="margin-top:8px">${arv.svg}</div><div class="small muted">${arv.txt}</div></section>
+    <section class="card"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +50 xp"}</span></div>
+     <div style="margin-top:6px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
+     <div class="row" style="margin-top:12px"><a class="btn gold" href="${prox}">${pc ? `Continuar quest · ${esc(nomeItem(pc))}` : "Ver certificado"}</a>${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div></section>
+   </div>
+   <div class="stack">
+    <section class="card"><span class="k">Atributos</span>${attrs.map(([n,v,c]) => `<div class="attr"><span>${n}</span><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Crescem conforme você conclui aulas, tarefas e disciplinas.</div></section>
+    <section class="card"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono dim">meta ${hx}/${meta} xp</span></div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
+    <section class="card"><span class="k">Conquistas</span><div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">${conq.map(([t,d,on,cor]) => `<div class="badge-mini ${on?"":"off"}" title="${esc(d)}"><i style="background:${cor}">${abrev(t)}</i><span style="min-width:0;line-height:1.25">${esc(t)}</span></div>`).join("")}</div></section>
+    <section class="card"><span class="k">Cursos</span>
+     ${[["#claude","Curso de Claude",cs.p,"#F59E0B",`${cs.done}/${cs.total}`],["#prog","Programação · BLESSAINT",ps.p,"#A78BFA",`${ps.done}/${ps.total}`],["#fac","Faculdade Estácio",fs.p,"#F472B6",fs.discs?`${fs.tdone}/${fs.tarefas} tarefas`:"cadastrar"]].map(([h,t,p,c,s]) => `<a href="${h}" style="display:block;text-decoration:none;color:var(--text);padding:11px 0;border-top:1px solid var(--line)"><div class="row between"><span style="font-weight:600;font-size:.92rem">${t}</span><span class="tiny mono" style="color:${c}">${s}</span></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${Math.round(p*100)}%;background:${c}"></i></div></a>`).join("")}</section>
+   </div>
+  </div></div>`;
 }
 function courseCard(href, cls, ic, t, sub, p, cor, linha, nota){
   return `<a class="course ${cls}" href="${href}"><div class="row between" style="flex-wrap:nowrap"><span class="ico">${ICO[ic]}</span>${ring(p, 58, 7, cor, Math.round(p*100)+"%")}</div>
@@ -337,17 +361,17 @@ function heatmap(sem){
   ini.setDate(ini.getDate() - ((ini.getDay()+6)%7));
   let h = ""; const d = new Date(ini);
   while (d <= fim){ const k = iso(d), v = at[k]||0; h += `<i class="${v>=200?"l4":v>=100?"l3":v>=50?"l2":v>0?"l1":""}" title="${fmtData(k)}: ${v} XP"></i>`; d.setDate(d.getDate()+1); }
-  return `<div class="heat">${h}</div><div class="row tiny dim" style="margin-top:8px;gap:6px">menos <i style="width:12px;height:12px;border-radius:3px;background:rgba(255,255,255,.06)"></i><i style="width:12px;height:12px;border-radius:3px;background:rgba(255,201,74,.3)"></i><i style="width:12px;height:12px;border-radius:3px;background:rgba(255,170,60,.55)"></i><i style="width:12px;height:12px;border-radius:3px;background:#FF6A2B"></i> mais</div>`;
+  return `<div class="heat">${h}</div><div class="row tiny dim" style="margin-top:8px;gap:6px">menos <i style="width:12px;height:12px;border-radius:3px;background:#1E2533"></i><i style="width:12px;height:12px;border-radius:3px;background:#156075"></i><i style="width:12px;height:12px;border-radius:3px;background:#1597B0"></i><i style="width:12px;height:12px;border-radius:3px;background:#22D3EE"></i> mais</div>`;
 }
 
 /* ===================== CLAUDE: trilha ===================== */
 const ZIG = [0, 70, 105, 70, 0, -70, -105, -70];
 function viewClaude(){
   const cs = claudeStats(), pc = proxClaude(); let idx = 0;
-  const UNIT_BG = ["linear-gradient(135deg,#4A2418,#2A1A2E)","linear-gradient(135deg,#1E2B52,#2A1A3E)","linear-gradient(135deg,#0F3B35,#1E2B52)","linear-gradient(135deg,#3A2A10,#3A1A2A)"];
+  const UNIT_BG = ["var(--card)","var(--card)","var(--card)","var(--card)"];
   return `<div class="stack fade">
-  <section class="course-hero" style="background:linear-gradient(135deg,#3A1E18,#1F1A35 60%,#151B30)"><div class="hero-grid">
-   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--claude)">Curso 1</span><h1>Curso de Claude</h1>
+  <section class="course-hero" style="--acc:linear-gradient(90deg,#F59E0B,#F472B6)"><div class="hero-grid">
+   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--amber)">curso_01 · ia</span><h1>Curso de Claude</h1>
     <p class="muted" style="font-size:1.05rem;margin:0">Do zero ao avançado: como a IA funciona, como pedir bem, o app inteiro, agentes, Claude Code e a API. Tudo em português, com prática na BLESSAINT.</p>
     <div class="row"><span class="tag cl">16 aulas</span><span class="tag cl">4 revisões</span><span class="tag cl">prova final</span><span class="tag gold">${cs.done}/${cs.total} feitas</span></div>
     <div class="row">${pc ? `<a class="btn gold" href="#aula-${pc.id}">${cs.done ? "Continuar" : "Começar"}: ${esc(nomeItem(pc))}</a>` : ""}<button class="btn ghost" data-intro="1">Como funciona</button></div></div>
@@ -355,10 +379,10 @@ function viewClaude(){
   </div></section>
   <div class="trail">${NIVEIS.map((nv,ni) => {
     const its = CURSO_CLAUDE.filter(x => x.nivel === nv.n); const f = its.filter(x => S.claude[x.id] && S.claude[x.id].done).length;
-    return `<div class="unit" style="background:${UNIT_BG[ni]}"><div style="min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.55)">Nível ${nv.n} · ${f}/${its.length}</span><h3 style="margin-top:4px">${esc(nv.nome)}</h3><div class="small muted">${esc(nv.desc)}</div></div>${nivelDone(nv.n) ? `<span class="tag gold">${ICO.check} concluído</span>` : ""}</div>` +
+    return `<div class="unit" style="background:${UNIT_BG[ni]}"><div style="min-width:0"><span class="eyebrow">nível_${nv.n} · ${f}/${its.length}</span><h3 style="margin-top:4px">${esc(nv.nome)}</h3><div class="small muted">${esc(nv.desc)}</div></div>${nivelDone(nv.n) ? `<span class="tag gold">${ICO.check} concluído</span>` : ""}</div>` +
       its.map(x => { const r = S.claude[x.id], done = r && r.done, cur = pc && pc.id === x.id, off = ZIG[idx++ % ZIG.length];
-        const inner = x.tipo === "prova" ? ICON_SVG.trophy.replace('viewBox','style="width:40px;height:40px" viewBox') : x.tipo === "rev" ? ICO.bolt : done ? ICO.check : numAula(x.id);
-        return `<div class="node-wrap" style="transform:translateX(${off}px)">${cur ? `<span class="bubble">${cs.done ? "CONTINUAR" : "COMEÇAR"}</span>` : ""}<a class="node ${done?"done":""} ${cur?"cur":""} ${x.tipo?"rev":""}" href="#aula-${x.id}" aria-label="${esc(nomeItem(x)+": "+x.titulo)}">${inner}</a><div class="node-lbl">${esc(x.tipo ? x.titulo : x.titulo)}<small>${esc(nomeItem(x))} · ${x.min} min${DATAS_CLAUDE[x.id] ? " · "+fmtData(DATAS_CLAUDE[x.id]) : ""}</small>${done ? starRow(estrelas(r)) : ""}</div></div>`; }).join("");
+        const inner = x.tipo === "prova" ? ICO.star : x.tipo === "rev" ? ICO.bolt : done ? ICO.check : numAula(x.id);
+        return `<div class="node-wrap" style="transform:translateX(${off}px)">${cur ? `<span class="bubble">PRÓXIMA</span>` : ""}<a class="node ${done?"done":""} ${cur?"cur":""} ${x.tipo?"rev":""}" href="#aula-${x.id}" aria-label="${esc(nomeItem(x)+": "+x.titulo)}">${inner}</a><div class="node-lbl">${esc(x.tipo ? x.titulo : x.titulo)}<small>${esc(nomeItem(x))} · ${x.min} min${DATAS_CLAUDE[x.id] ? " · "+fmtData(DATAS_CLAUDE[x.id]) : ""}</small>${done ? starRow(estrelas(r)) : ""}</div></div>`; }).join("");
   }).join("")}
   ${S.claude.pf && pct(S.claude.pf) >= .7 ? `<div style="width:100%;max-width:620px;margin-top:24px">${certificado()}</div>` : ""}
   </div></div>`;
@@ -392,19 +416,19 @@ function viewAula(id){
 function quizHTML(x){
   const q = QZ[x.id], r = S.claude[x.id];
   if (!q){
-    return `<div class="quiz" style="text-align:center"><div style="width:72px;margin:0 auto">${ICON_SVG.trophy}</div><h3 style="margin:10px 0 6px">${x.quiz.length} perguntas</h3><p class="muted small">${r && r.total ? `Sua melhor nota: <b class="num" style="color:var(--gold)">${r.best}/${r.total}</b> ${starRow(estrelas(r),14)}` : "Responda clicando na caixinha. Acertos seguidos viram combo."}</p><button class="btn gold" data-qstart="${x.id}">${r && r.total ? "Refazer quiz" : "Começar quiz"}</button></div>`;
+    return `<div class="quiz" style="text-align:center"><span class="tag pg">quiz · ${x.quiz.length} questões</span><h3 style="margin:10px 0 6px">Teste o que você aprendeu</h3><p class="muted small">${r && r.total ? `Sua melhor nota: <b class="num" style="color:var(--gold)">${r.best}/${r.total}</b> ${starRow(estrelas(r),14)}` : "Responda clicando na caixinha. Acertos seguidos viram combo."}</p><button class="btn gold" data-qstart="${x.id}">${r && r.total ? "Refazer quiz" : "Começar quiz"}</button></div>`;
   }
   if (q.fim){
     const right = q.res.filter(Boolean).length, n = x.quiz.length, p = right/n, st = p >= .9 ? 3 : p >= .7 ? 2 : 1;
-    return `<div class="quiz result"><div class="bigstars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=st?"#FFC94A":"rgba(255,255,255,.12)"}"/></svg>`).join("")}</div>
-     <h2>${right === n ? "Gabaritou!" : p >= .7 ? "Mandou bem!" : "Bora revisar e tentar de novo"}</h2><div class="row" style="justify-content:center;gap:24px"><div><div class="xpgain num">${right}/${n}</div><div class="tiny dim">acertos</div></div><div><div class="xpgain num">${q.gain > 0 ? "+"+q.gain : "+0"}</div><div class="tiny dim">XP</div></div><div><div class="xpgain num" style="color:var(--fire)">${q.maxCombo}</div><div class="tiny dim">maior combo</div></div></div>
+    return `<div class="quiz result"><div class="bigstars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=st?"#22D3EE":"rgba(255,255,255,.12)"}"/></svg>`).join("")}</div>
+     <h2>${right === n ? "100% de acerto" : p >= .7 ? "Aprovado" : "Revise e tente de novo"}</h2><div class="row" style="justify-content:center;gap:24px"><div><div class="xpgain num">${right}/${n}</div><div class="tiny dim">acertos</div></div><div><div class="xpgain num">${q.gain > 0 ? "+"+q.gain : "+0"}</div><div class="tiny dim">XP</div></div><div><div class="xpgain num" style="color:var(--fire)">${q.maxCombo}</div><div class="tiny dim">maior combo</div></div></div>
      <div class="row" style="justify-content:center"><button class="btn gold" data-copy-aula="${x.id}">${ICO.copy} Enviar resultado ao Claude</button><button class="btn" data-qstart="${x.id}">Refazer</button></div></div>`;
   }
   const qi = q.i, item = x.quiz[qi], ord = ordem(x.id, qi, item[1].length);
   return `<div class="quiz"><div class="row between" style="flex-wrap:nowrap;gap:14px"><div class="qprog" style="flex:1">${x.quiz.map((_,k) => `<i class="${k<qi ? (q.res[k]?"ok":"bad") : k===qi ? "cur" : ""}"></i>`).join("")}</div>${q.combo >= 2 ? `<span class="combo">${flameMini().replace("<svg","<svg style='width:18px;height:18px'")} ${q.combo}x</span>` : `<span class="small dim num">${qi+1}/${x.quiz.length}</span>`}</div>
    <div class="qtext">${esc(item[0])}</div>
    ${ord.map(oi => { let cls = ""; if (q.checked){ if (oi === item[2]) cls = "right"; else if (q.pick === oi) cls = "wrong"; } return `<button class="opt ${cls}" role="checkbox" aria-checked="${q.pick===oi}" data-opt="${x.id}:${oi}" ${q.checked?"disabled":""}><span class="box"></span><span>${esc(item[1][oi])}</span></button>`; }).join("")}
-   ${q.checked ? `<div class="feedback ${q.pick===item[2]?"ok":"bad"}"><div><b>${q.pick===item[2] ? (q.combo>=3 ? `Combo de ${q.combo}!` : "Isso aí!") : "Quase."}</b> ${q.pick===item[2] ? "" : `Resposta: ${esc(item[1][item[2]])}. `}${esc(item[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===item[2]?"ok":"gold"}" data-qnext="${x.id}">${qi+1 < x.quiz.length ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
+   ${q.checked ? `<div class="feedback ${q.pick===item[2]?"ok":"bad"}"><div><b>${q.pick===item[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===item[2] ? "" : `Resposta: ${esc(item[1][item[2]])}. `}${esc(item[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===item[2]?"ok":"gold"}" data-qnext="${x.id}">${qi+1 < x.quiz.length ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
      : `<div class="row between" style="margin-top:16px"><span class="err" id="qerr" role="alert"></span><button class="btn gold" data-qcheck="${x.id}">Verificar</button></div>`}
   </div>`;
 }
@@ -421,16 +445,16 @@ function textoAula(id){
 function viewProg(){
   const ps = progStats(), pp = proxProg(), vazio = Object.keys(S.prog).length === 0;
   return `<div class="stack fade">
-  <section class="course-hero" style="background:linear-gradient(135deg,#3A3326,#1E1B22 60%,#151B30)"><div class="hero-grid">
-   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--prog)">Curso 2 · BLESSAINT</span><h1>Programação</h1>
+  <section class="course-hero" style="--acc:linear-gradient(90deg,#7C5CFF,#A78BFA)"><div class="hero-grid">
+   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--violet)">curso_02 · front-end</span><h1>Programação</h1>
     <p class="muted" style="margin:0;font-size:1.05rem">HTML, CSS, Git e JavaScript construindo o site da BLESSAINT. Você digita o código, o Claude explica e corrige.</p>
     <div class="row"><span class="tag pg">51 aulas</span><span class="tag pg">5 fases</span><span class="tag gold">${ps.done} feitas · nota ${f1(ps.nota)}</span></div>
     ${pp ? `<div class="row"><button class="btn gold" data-sheet="${pp[0]}">${ICO.arrow} Próxima: Aula ${pp[0]}</button></div>` : ""}</div>
-   <div class="stack" style="gap:12px">${PROG_FASES.map(f => { const its = PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate), d = its.filter(a => S.prog[a[0]] && S.prog[a[0]].done).length; return `<div><div class="row between"><b>${f.nome}</b><span class="small dim num">${d}/${its.length}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(d/its.length*100)}%;background:linear-gradient(90deg,#EADDC3,#FFC94A)"></i></div></div>`; }).join("")}</div>
+   <div class="stack" style="gap:12px">${PROG_FASES.map(f => { const its = PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate), d = its.filter(a => S.prog[a[0]] && S.prog[a[0]].done).length; return `<div><div class="row between"><b>${f.nome}</b><span class="small dim num">${d}/${its.length}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(d/its.length*100)}%"></i></div></div>`; }).join("")}</div>
   </div></section>
   ${vazio ? `<section class="card row between"><div style="min-width:0;flex:1"><b>Já começou este curso?</b><p class="small muted" style="margin:4px 0 0">Pelo diário de bordo, as aulas 0 a 5 estão feitas (quizzes 5/5, 4/8, 6/7, 5/7, 4/7 e 4/8).</p></div><button class="btn gold" data-import-hist="1">Importar histórico</button></section>` : ""}
-  <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:22px;height:22px;vertical-align:-4px;color:var(--bad)'")} Chefões a derrotar</h3><span class="small dim">seus pontos fracos · +50 XP cada</span></div>
-   <div class="stack" style="gap:10px;margin-top:14px">${PROG_PONTOS_FRACOS.map((p,k) => { const dead = !!S.chefes[k]; return `<button class="boss ${dead?"dead":""}" data-boss="${k}" aria-pressed="${dead}"><span class="tick" aria-checked="${dead}"></span><span class="hp"><span class="t" style="font-weight:800;display:block">${esc(p)}</span><span class="bar" style="height:7px;margin-top:8px;display:block"><i style="width:${dead?0:100}%;background:linear-gradient(90deg,#FF5E6E,#FF8A5B)"></i></span></span><span class="tiny dim">${dead?"derrotado":"vivo"}</span></button>`; }).join("")}</div></section>
+  <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:20px;height:20px;vertical-align:-4px;color:var(--red)'")} Bugs a corrigir</h3><span class="small dim mono">seus pontos fracos · +50 xp cada</span></div>
+   <div class="stack" style="gap:10px;margin-top:14px">${PROG_PONTOS_FRACOS.map((p,k) => { const dead = !!S.chefes[k]; return `<button class="boss ${dead?"dead":""}" data-boss="${k}" aria-pressed="${dead}"><span class="tick" aria-checked="${dead}"></span><span class="hp"><span class="t" style="font-weight:800;display:block">${esc(p)}</span><span class="bar" style="height:7px;margin-top:8px;display:block"><i style="width:${dead?0:100}%;background:linear-gradient(90deg,#F87171,#F472B6)"></i></span></span><span class="tiny dim mono">${dead?"corrigido":"aberto"}</span></button>`; }).join("")}</div></section>
   ${PROG_FASES.map(f => `<section><div class="row between" style="margin:8px 0 10px"><h3>Fase ${esc(f.nome)}</h3></div><div class="list">${PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate).map(progRow).join("")}</div></section>`).join("")}
   <p class="small dim">Datas previstas do cronograma original. Depois da Aula 50 vem a Fase 2: JSON, React, back-end e banco de dados.</p>
   </div>`;
@@ -456,12 +480,12 @@ function viewFac(){
   const evs = S.fac.discs.flatMap(d => (d.entregas||[]).filter(e => !e.ok && e.data).map(e => ({...e, disc:d.nome}))).sort((a,b) => a.data.localeCompare(b.data)).slice(0,6);
   const dias = s => Math.round((new Date(s+"T12:00") - new Date(hoje()+"T12:00"))/864e5);
   return `<div class="stack fade">
-  <section class="course-hero" style="background:linear-gradient(135deg,#0F3B35,#14213A 60%,#151B30)"><div class="hero-grid">
-   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--fac)">Curso 3</span><h1>Faculdade Estácio</h1>
+  <section class="course-hero" style="--acc:linear-gradient(90deg,#F472B6,#A78BFA)"><div class="hero-grid">
+   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--pink)">curso_03 · faculdade</span><h1>Faculdade Estácio</h1>
     <p class="muted" style="margin:0;font-size:1.05rem">Ciência da Computação. Disciplinas, notas, provas e o que estudar, tudo num lugar, para o Claude te ajudar a acompanhar.</p>
     <div class="row"><span class="tag fc">${fs.discs} disciplinas</span><span class="tag ok">${fs.ap} acima da média</span><span class="tag">média mínima ${f1(S.fac.min)}</span></div>
     <div class="row"><button class="btn gold" data-copy-fac="1">${ICO.copy} Pedir plano de estudo ao Claude</button></div></div>
-   <div class="card" style="background:rgba(0,0,0,.2)"><div class="row between"><b>Próximas provas</b>${ICO.cal.replace("<svg","<svg style='width:20px;height:20px;color:var(--fac)'")}</div>
+   <div class="card" style="background:var(--bg2)"><div class="row between"><b>Próximas provas</b>${ICO.cal.replace("<svg","<svg style='width:18px;height:18px;color:var(--pink)'")}</div>
     ${evs.length ? evs.map(e => { const dd = dias(e.data); const [y,m,d] = e.data.split("-"); return `<div class="ev"><div class="d">${+d}<small>${MESES[+m-1]}</small></div><div style="min-width:0;flex:1"><b>${esc(e.t)}</b><div class="small muted">${esc(e.disc)}</div></div><span class="tag ${dd<=3?"bad":"fc"}">${dd<0?"atrasada":dd===0?"hoje":dd===1?"amanhã":"em "+dd+" dias"}</span></div>`; }).join("") : `<p class="small muted" style="margin:10px 0 0">Nada marcado. Adicione provas dentro de cada disciplina.</p>`}</div>
   </div></section>
   <section class="card stack" style="gap:14px"><div class="row between"><b>Período</b><div class="chips">${[1,2,3,4,5,6,7,8].map(k => `<button class="chip" aria-pressed="${sem===k}" data-sem="${k}">${k}º</button>`).join("")}</div></div>
@@ -493,34 +517,35 @@ function textoFac(d){
 function medalhas(){
   const cs = claudeStats(), ps = progStats(), fs = facStats(), st = streak();
   return [
-   ["1ª aula","Concluir a primeira aula", cs.done+ps.done >= 1, "#58B4FF"],
-   ["Em chamas","3 dias seguidos", st >= 3, "#FF7A2F"],
-   ["Semana de fogo","7 dias seguidos", st >= 7, "#FF5E1F"],
-   ["Imparável","30 dias seguidos", st >= 30, "#FF2E63"],
-   ["Gabarito","Acertar tudo num quiz", Object.values(S.claude).some(r => r.total && r.best === r.total), "#FFC94A"],
-   ["Fundamentos","Fechar o nível 1 de Claude", nivelDone(1), "#FF8A5B"],
-   ["Agente","Fechar o nível 3 de Claude", nivelDone(3), "#8D7BFF"],
-   ["Expert em Claude","Passar na prova final", !!(S.claude.pf && pct(S.claude.pf) >= .7), "#FFE08A"],
-   ["Caçador de chefões","Derrotar todos os pontos fracos", PROG_PONTOS_FRACOS.every((_,k) => S.chefes[k]), "#FF5E6E"],
-   ["Fase HTML","Concluir aulas 0 a 8", PROG_AULAS.filter(a => a[0] <= 8).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#EADDC3"],
-   ["Fase CSS","Concluir aulas 9 a 24", PROG_AULAS.filter(a => a[0] >= 9 && a[0] <= 24).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#58B4FF"],
-   ["BLESSAINT 1.0","Concluir a Aula 50", !!(S.prog[50] && S.prog[50].done), "#FFC94A"],
-   ["Aprovado","Ficar acima da média numa disciplina", fs.ap >= 1, "#3DDBB5"],
-   ["Missão cumprida","Completar as missões de um dia", Object.keys(S.bonus).length >= 1, "#3BDB8C"]
+   ["1ª aula","Concluir a primeira aula", cs.done+ps.done >= 1, "#22D3EE"],
+   ["Em chamas","3 dias seguidos", st >= 3, "#F59E0B"],
+   ["Semana de fogo","7 dias seguidos", st >= 7, "#F59E0B"],
+   ["Imparável","30 dias seguidos", st >= 30, "#F472B6"],
+   ["Gabarito","Acertar tudo num quiz", Object.values(S.claude).some(r => r.total && r.best === r.total), "#22D3EE"],
+   ["Fundamentos","Fechar o nível 1 de Claude", nivelDone(1), "#F59E0B"],
+   ["Agente","Fechar o nível 3 de Claude", nivelDone(3), "#A78BFA"],
+   ["Expert em Claude","Passar na prova final", !!(S.claude.pf && pct(S.claude.pf) >= .7), "#22D3EE"],
+   ["Zero bugs","Corrigir todos os pontos fracos", PROG_PONTOS_FRACOS.every((_,k) => S.chefes[k]), "#F87171"],
+   ["Fase HTML","Concluir aulas 0 a 8", PROG_AULAS.filter(a => a[0] <= 8).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#A78BFA"],
+   ["Fase CSS","Concluir aulas 9 a 24", PROG_AULAS.filter(a => a[0] >= 9 && a[0] <= 24).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#22D3EE"],
+   ["BLESSAINT 1.0","Concluir a Aula 50", !!(S.prog[50] && S.prog[50].done), "#22D3EE"],
+   ["Aprovado","Ficar acima da média numa disciplina", fs.ap >= 1, "#F472B6"],
+   ["Missão cumprida","Completar as missões de um dia", Object.keys(S.bonus).length >= 1, "#34D399"]
   ];
 }
-function medalSVG(cor, on){ return `<svg class="m" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" fill="${on?cor:"#2A3254"}" opacity="${on?.25:1}"/><circle cx="26" cy="26" r="17" fill="${on?cor:"#1C2440"}"/><path d="M26 15l3.2 6.6 7.2 1-5.2 5.1 1.2 7.2L26 31.5l-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z" fill="${on?"#fff":"#3A4570"}"/></svg>`; }
+function medalSVG(cor, on){ return `<svg class="m" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" fill="${on?cor:"#1E2533"}" opacity="${on?.2:1}"/><circle cx="26" cy="26" r="17" fill="${on?cor:"#171D2B"}"/><path d="M26 15l3.2 6.6 7.2 1-5.2 5.1 1.2 7.2L26 31.5l-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z" fill="${on?"#0B0E14":"#3A4570"}"/></svg>`; }
 function viewPerfil(){
   const lv = nivel(), cs = claudeStats(), ps = progStats(), fs = facStats(), md = medalhas();
   const sit = v => v === null ? `<span class="tag">sem nota</span>` : v >= 7 ? `<span class="tag ok">ótimo</span>` : v >= 6 ? `<span class="tag gold">na média</span>` : `<span class="tag bad">atenção</span>`;
   return `<div class="stack fade">
-  <section class="hero"><div class="hero-grid"><div class="row" style="gap:20px;flex-wrap:nowrap">${badge(lv, 96)}<div style="min-width:0"><span class="eyebrow" style="color:rgba(255,255,255,.55)">Nível ${lv.n}</span><div class="greet">${esc(S.nome)}</div><p class="muted" style="margin:4px 0 0">${esc(lv.nome)} · ${lv.xp} XP · ${streak()} dias seguidos</p></div></div>
+  <section class="course-hero"><div class="hero-grid"><div class="row" style="gap:20px;flex-wrap:nowrap">${badge(lv, 84)}<div style="min-width:0"><span class="eyebrow">lvl ${lv.n} · ${CARREIRA[carreiraIdx(lv.n)]}</span><h1 style="font-size:2rem">${esc(S.nome)}</h1><p class="muted mono small" style="margin:4px 0 0">${esc(lv.nome)} · ${lv.xp} xp · ${streak()} dias seguidos</p></div></div>
    <div><div class="bar"><i style="width:${Math.round(lv.p*100)}%"></i></div><p class="small muted" style="margin:8px 0 12px">${lv.prox ? `Faltam ${lv.prox-lv.xp} XP para ${esc(lv.proxNome)}.` : "Nível máximo."}</p><div class="row"><button class="btn gold" data-copy-bol="1">${ICO.copy} Enviar boletim ao Claude</button></div></div></div></section>
   <section class="card"><h3>Boletim</h3><div class="tbl-wrap" style="margin-top:10px"><table class="tbl"><thead><tr><th>Curso</th><th>Progresso</th><th>Nota</th><th>Situação</th></tr></thead><tbody>
    <tr><td><b>Curso de Claude</b><div class="tiny dim">${claudeTitulo()}</div></td><td class="num">${cs.done}/${cs.total}</td><td><span class="grade">${f1(cs.nota)}</span></td><td>${sit(cs.nota)}</td></tr>
    <tr><td><b>Programação</b><div class="tiny dim">BLESSAINT</div></td><td class="num">${ps.done}/${ps.total}</td><td><span class="grade">${f1(ps.nota)}</span></td><td>${sit(ps.nota)}</td></tr>
    <tr><td><b>Faculdade Estácio</b><div class="tiny dim">${fs.discs} disciplinas</div></td><td class="num">${fs.tdone}/${fs.tarefas}</td><td><span class="grade">${f1(fs.nota)}</span></td><td>${sit(fs.nota)}</td></tr>
-   <tr><td><b>Geral</b></td><td></td><td><span class="grade" style="font-size:2rem">${f1(notaGeral())}</span></td><td></td></tr></tbody></table></div></section>
+   <tr><td><b>Geral</b></td><td></td><td><span class="grade" style="font-size:1.4rem">${f1(notaGeral())}</span></td><td></td></tr></tbody></table></div></section>
+  <div class="grid2"><section class="card"><span class="k">Atributos</span>${atributos().map(([n,v,c]) => `<div class="attr"><span>${n}</span><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}</section><section class="card"><span class="k">Histórico de estudo</span><div style="margin-top:12px">${heatmap(16)}</div></section></div>
   <section><div class="row between" style="margin-bottom:12px"><h3>Conquistas</h3><span class="tag gold">${md.filter(m => m[2]).length}/${md.length}</span></div><div class="grid3">${md.map(([t,d,on,cor]) => `<div class="medal ${on?"on":"off"}">${medalSVG(cor,on)}<div><b>${esc(t)}</b><div class="tiny muted">${esc(d)}</div></div></div>`).join("")}</div></section>
   ${S.claude.pf && pct(S.claude.pf) >= .7 ? certificado() : ""}
   <section class="card"><h3>Diário</h3>${S.log.length ? `<div style="margin-top:8px">${S.log.slice(0,20).map(l => `<div class="row between" style="padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span style="min-width:0" class="small">${esc(l.txt||"")}</span><span class="row" style="gap:10px;flex-wrap:nowrap">${l.xp ? `<span class="tiny" style="color:${l.xp>0?"var(--gold)":"var(--bad)"};font-weight:800">${l.xp>0?"+":""}${l.xp} XP</span>` : ""}<span class="tiny dim">${fmtData(l.d)}</span></span></div>`).join("")}</div>` : `<p class="small muted" style="margin:8px 0 0">Seu diário aparece aqui conforme você estuda.</p>`}</section>
@@ -583,7 +608,7 @@ document.addEventListener("click", e => {
   if (d.pok){ const [n,v] = d.pok.split(":"); act(() => { const r = S.prog[n] = Object.assign({}, S.prog[n]); r.ok = +v; r.done = true; }, "prog", `Programação · quiz da Aula ${n}: ${v}/${(S.prog[n]||{}).tot}`, e); abrirSheet(n); render(true); return; }
   if (d.copyProg !== undefined){ const a = PROG_AULAS.find(z => String(z[0]) === String(d.copyProg)); return copiar(`Vamos estudar a Aula ${a[0]} do curso de programação: ${a[2]}`); }
   if (d.importHist){ act(() => { Object.entries(PROG_HISTORICO).forEach(([n,[ok,tot]]) => { S.prog[n] = {done:true, ok, tot}; }); }, "import", "Importei o histórico das aulas 0 a 5", e); render(true); return; }
-  if (d.boss !== undefined){ const k = d.boss; act(() => { S.chefes[k] = !S.chefes[k]; }, "prog", S.chefes[k] ? null : `Chefão derrotado: ${PROG_PONTOS_FRACOS[k]}`, e); render(true); return; }
+  if (d.boss !== undefined){ const k = d.boss; act(() => { S.chefes[k] = !S.chefes[k]; }, "prog", S.chefes[k] ? null : `Bug corrigido: ${PROG_PONTOS_FRACOS[k]}`, e); render(true); return; }
   if (d.sem){ S.fac.sem = +d.sem; persist(); render(true); return; }
   if (d.min){ act(() => { S.fac.min = +d.min; }, "fac", null); render(true); return; }
   if (d.sug) return addDisc(d.sug);
@@ -692,7 +717,7 @@ async function doSetup(){
     btn.textContent = "Guardando no GitHub…"; await putCofre(cofre, tok);
     COFRE = cofre; KEY = k; SESS = {token:tok, gist:g.id, user:u.login, lembrar:true}; saveSess();
     await entrar(false);
-    modal(`<div style="width:90px">${ICON_SVG.trophy}</div><h2>Cofre criado!</h2><p class="muted">Agora é só abrir este endereço em qualquer aparelho e entrar com a sua senha. O GitHub leva cerca de 1 minuto para publicar o cofre.</p><button class="btn gold" data-close>Começar a estudar</button>`, true);
+    modal(`<span class="tag ok">cofre criado</span><h2>Tudo pronto</h2><p class="muted">Agora é só abrir este endereço em qualquer aparelho e entrar com a sua senha. O GitHub leva cerca de 1 minuto para publicar o cofre.</p><button class="btn gold" data-close>Começar a estudar</button>`, true);
   } catch(x){
     btn.disabled = false; btn.textContent = "Criar meu cofre e entrar";
     er.textContent = x.status === 401 ? "Token inválido. Gere de novo e cole." : (x.status === 403 || x.status === 404) ? `Token sem permissão. Confira: acesso ao repositório ${REPO}, Contents e Gists com leitura e escrita.` : "Não consegui falar com o GitHub. Verifique a internet.";
