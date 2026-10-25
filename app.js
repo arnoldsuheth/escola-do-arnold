@@ -371,12 +371,19 @@ function saudacao(){
   else sub = "Sessão aberta até a meia-noite. Bora pra cima.";
   return {oi, sub};
 }
+function studyBlocks(value){
+ const p=Math.min(100,Math.max(0,value)),n=20,r=43;
+ const point=a=>[55+r*Math.cos(a*Math.PI/180),55+r*Math.sin(a*Math.PI/180)];
+ const arc=(a,b)=>{const u=point(a),v=point(b);return `M${u[0]},${u[1]} A${r},${r} 0 0 1 ${v[0]},${v[1]}`;};
+ let paths="";for(let i=0;i<n;i++){const a=-90+i*18,b=a+15,f=Math.max(0,Math.min(1,p*n/100-i));paths+=`<path d="${arc(a,b)}" class="study-block-empty"/>`;if(f>0)paths+=`<path d="${arc(a,a+15*f)}" class="study-block-fill"/>`;}
+ return `<svg class="study-blocks" viewBox="0 0 110 110" role="progressbar" aria-label="Progresso" aria-valuenow="${p.toFixed(2)}" aria-valuemin="0" aria-valuemax="100">${paths}<text x="55" y="60" text-anchor="middle">${(Math.floor(p*10)/10).toLocaleString("pt-BR")}%</text></svg>`;
+}
 function studyProgressHTML(cs,ps,ds,fs){
  const approved=S.fac.discs.filter(d=>d.aprovada && media(d)!==null && media(d)>=S.fac.min).length;
  const rows=[["Claude",cs.done,cs.total,"aulas"],["Programação",ps.done,ps.total,"aulas"],["Design",ds.d,ds.t,"aulas"],["Faculdade",approved,fs.discs,"disciplinas aprovadas"]];
  return `<details class="study-progress"><summary>Progresso por área <span class="tiny muted">Ver detalhes</span></summary><div class="study-grid">${rows.map(([name,done,total,unit])=>{
    const exact=total?Math.min(100,Math.max(0,done/total*100)):0, percent=Math.floor(exact*10)/10, tone=exact<45?"low":exact<=65?"mid":"high";
-   return `<div class="study-box ${tone}"><div class="study-top"><b>${name}</b><span class="study-percent">${percent}%</span></div><div class="small muted">${done}/${total} ${unit}</div><div class="study-track" role="progressbar" aria-label="${name}" aria-valuenow="${exact.toFixed(2)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${exact}%"></i></div>${name==="Faculdade" && fs.tarefas?`<div class="tiny muted">${fs.tdone}/${fs.tarefas} tópicos e entregas</div>`:""}</div>`;
+   return `<div class="study-box ${tone}" role="group" aria-label="${name}">${studyBlocks(exact)}<div class="study-top"><b>${name}</b></div><div class="small muted">${done}/${total} ${unit}</div>${name==="Faculdade" && fs.tarefas?`<div class="tiny muted">${fs.tdone}/${fs.tarefas} tópicos e entregas</div>`:""}</div>`;
  }).join("")}</div></details>`;
 }
 function viewHoje(){

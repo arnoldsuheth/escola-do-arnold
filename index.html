@@ -491,6 +491,10 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 .study-progress{margin-top:14px}.study-progress>summary{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:10px 0;color:var(--text);font-size:.86rem;font-weight:600}.study-progress>summary::-webkit-details-marker{display:none}.study-progress>summary::after{content:"+";color:var(--cyan);font-size:1.2rem}.study-progress[open]>summary::after{content:"−"}.study-progress[open]>summary>span{display:none}.study-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:8px 0 14px}.study-box{--study-color:var(--red);--study-glow:rgba(248,113,113,.09);padding:14px;border:1px solid color-mix(in srgb,var(--study-color) 35%,var(--line));background:var(--bg2);border-radius:12px;box-shadow:0 0 12px var(--study-glow),inset 0 0 16px var(--study-glow);min-width:0}.study-box.mid{--study-color:var(--amber);--study-glow:rgba(245,158,11,.09)}.study-box.high{--study-color:var(--green);--study-glow:rgba(52,211,153,.09)}.study-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}.study-top b{font-size:.87rem}.study-percent{color:var(--study-color);font-family:var(--f-m);font-weight:700}.study-track{height:6px;background:var(--card3);border-radius:8px;margin-top:10px;overflow:hidden}.study-track i{display:block;height:100%;background:var(--study-color);border-radius:8px}.level-info{margin-top:10px}.level-info summary{font-size:.76rem;color:var(--muted);cursor:pointer}.level-info p{margin-top:8px}.career-mobile{display:none}
 @media(max-width:600px){.career{display:none}.career-mobile{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:16px 0;font-size:.8rem;flex-wrap:wrap}.career-mobile span:first-child{color:var(--cyan)}.study-grid{grid-template-columns:1fr}.stats3 .k{letter-spacing:.06em;font-size:.65rem}.stats3 .v{font-size:clamp(1.25rem,6vw,1.7rem)}.stats3 .v small{font-size:.65rem}.stat{min-width:0}.study-box{padding:14px}}
 
+
+/* Medidores de blocos somente no progresso por área. */
+.study-box{display:grid;grid-template-columns:100px minmax(0,1fr);column-gap:12px;align-content:center}.study-blocks{width:100%;max-width:100px;grid-column:1;grid-row:1/4;align-self:center;overflow:visible}.study-blocks path{fill:none;stroke-width:9}.study-block-empty{stroke:var(--card3)}.study-block-fill{stroke:var(--study-color);filter:drop-shadow(0 0 2px var(--study-color))}.study-blocks text{fill:var(--study-color);font-family:var(--f-m);font-size:15px;font-weight:700}.study-box .study-top{grid-column:2;grid-row:1;align-self:end;margin:0 0 4px;min-width:0}.study-box>.small{grid-column:2;grid-row:2;overflow-wrap:anywhere}.study-box>.tiny{grid-column:2;grid-row:3;margin-top:4px}.study-top b{overflow-wrap:anywhere}@media(min-width:601px) and (max-width:1100px){.study-grid{grid-template-columns:1fr}}@media(max-width:360px){.study-box{grid-template-columns:84px minmax(0,1fr);column-gap:10px}}
+
 </style>
 </head>
 <body>
@@ -501,9 +505,9 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 <script src="cursos.js?v=17"></script>
 <script src="desafios.js?v=17"></script>
 <script src="ilus.js?v=17"></script>
-<script src="progression.js?v=20"></script>
-<script src="app.js?v=20"></script>
-<script src="practice.js?v=20"></script>
+<script src="progression.js?v=21"></script>
+<script src="app.js?v=21"></script>
+<script src="practice.js?v=21"></script>
 </body>
 </html>
 

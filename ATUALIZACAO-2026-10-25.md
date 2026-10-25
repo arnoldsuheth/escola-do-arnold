@@ -36,3 +36,5 @@ As patentes representam marcos de aprendizagem da plataforma; não equivalem a c
 ## Organização visual do progresso
 
 Progresso por área recolhível, em caixas com barra, percentual e brilho discreto: vermelho abaixo de 45%, amarelo entre 45% e 65% inclusive, verde acima de 65%. Explicação dos níveis recolhível; tarefas vazias ocultas; carreira mobile mostra nível atual e próximo. Nenhuma regra de XP ou dado foi alterado neste ajuste visual.
+
+Medidores circulares de 20 blocos aplicados somente em Progresso por área (Claude, Programação, Design e Faculdade). Mantidas as cores por percentual e o brilho discreto. Nenhuma alteração nas árvores, demais medidores, pontuação ou dados.
