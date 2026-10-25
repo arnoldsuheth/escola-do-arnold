@@ -23,7 +23,7 @@ test('real app migrates legacy XP, preserves state and displays all career studi
  assert.equal(a.state().prog[0].done,true);assert.equal(a.state().ranks[3],'2026-10-24');
  assert.equal(a.state().xpLedger.previousRanks[3],'2026-10-24');
  assert.equal(P.reconcile(a.state().xpLedger,a.snapshot()),0);
- const page=a.viewHoje();assert.match(page,/Design: 35\/299/);assert.match(page,/Faculdade: 1\/1 disciplinas aprovadas/);
+ const page=a.viewHoje();assert.match(page,/35\/299 aulas/);assert.match(page,/1\/1 disciplinas aprovadas/);
  assert.match(a.viewTrajetoria(),/Prática e projetos/);
  assert.equal(a.parts().reduce((n,r)=>n+r[1],0),total);
 });

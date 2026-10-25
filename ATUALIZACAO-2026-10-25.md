@@ -32,3 +32,7 @@ Recarregue as abas abertas após a atualização para usar as mesmas regras em t
 
 Base anterior: 3c3e8aea77a5c827cef6dd267bf8ab137541165e.
 As patentes representam marcos de aprendizagem da plataforma; não equivalem a certificação ou enquadramento profissional.
+
+## Organização visual do progresso
+
+Progresso por área recolhível, em caixas com barra, percentual e brilho discreto: vermelho abaixo de 45%, amarelo entre 45% e 65% inclusive, verde acima de 65%. Explicação dos níveis recolhível; tarefas vazias ocultas; carreira mobile mostra nível atual e próximo. Nenhuma regra de XP ou dado foi alterado neste ajuste visual.
