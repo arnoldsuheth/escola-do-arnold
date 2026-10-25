@@ -264,6 +264,8 @@ const ICO = {
   arrow: I('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   back: I('<path d="M19 12H5M11 6l-6 6 6 6"/>'),
   plus: I('<path d="M12 5v14M5 12h14"/>'),
+  pen: I('<path d="M12 19l7-7 3 3-7 7z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18z"/><path d="M2 2l7.6 7.6"/><circle cx="11" cy="11" r="2"/>'),
+  pencil: I('<path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/><path d="M15 5l4 4"/>'),
   grid: I('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
   music: I('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
   book: I('<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M4 20.5A1.5 1.5 0 0 0 5.5 22H20v-3"/>'),
@@ -281,14 +283,15 @@ const crestSVG = () => { const p = "cr" + (++_crestN); return `<svg class="crest
 const CREST_BIG = crestSVG();
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
+const NAV_GRUPO = {claude:"Carreira", "curso-arte":"Hobbies", perfil:""};
 const NAV_TAB = ["hoje","cursos","violao","livros","perfil"];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
-const secao = r => r.startsWith("aula-") ? "claude" : r.startsWith("curso-") ? "cursos" : NAV.some(n => n[0] === r) ? r : "hoje";
+const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : r === "curso-violao" || r === "curso-ls1" || r === "curso-ls3" ? "violao" : r.startsWith("curso-") ? "cursos" : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
   <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
-   ${NAV.map(([k,t,i]) => `<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
+   ${NAV.map(([k,t,i]) => `${k in NAV_GRUPO ? `<div class="navg">${NAV_GRUPO[k]}</div>` : ""}<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
   <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
