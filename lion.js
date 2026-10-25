@@ -97,9 +97,9 @@
  const motionOn=()=>prefs.motion&&!calm.matches;
  const clipOf={ok:'cheer',bad:'oops',hello:'hello',celebrate:'celebrate'};
  function l3play(k){const c=clipOf[k]||k;[L3i,L3s].forEach(l=>{if(l)l.play(c);});}
- function initIcon(){if(L3i||!l3ok||root.hidden)return;try{L3i=Lion3D.create(icon.querySelector('canvas.lion-3d'),{model:'chip_prata',fps:20,maxDpr:2,dist:8.2,target:[0,1.45,0],motion:motionOn()});}catch(e){L3i=null;}if(!L3i)return;icon.classList.add('l3');L3i.setBase(C.petMood(prefs.pet,C.clock().hour,C.clock().key).base);if(motionOn()&&!document.hidden)L3i.start();else L3i.still();}
+ function initIcon(){if(L3i||!l3ok||root.hidden)return;try{L3i=Lion3D.create(icon.querySelector('canvas.lion-3d'),{model:'chip_prata',fps:20,maxDpr:2,dist:8.2,target:[0,1.45,0],motion:motionOn()});}catch(e){L3i=null;}if(!L3i)return;icon.classList.add('l3');{const m0=C.petMood(prefs.pet,C.clock().hour,C.clock().key);L3i.setBase(m0.base);L3i.setMood(m0.state);}if(motionOn()&&!document.hidden)L3i.start();else L3i.still();}
  function l3motion(){const m=motionOn();[L3i,L3s].forEach(l=>{if(!l)return;l.setMotion(m);if(m&&!document.hidden)l.start();else l.still();});}
- function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{model:'chip_prata',fps:30,maxDpr:2,dist:9.4,target:[0,1.5,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv,stageTap);L3s.setBase(C.petMood(prefs.pet,C.clock().hour,C.clock().key).base);if(motionOn())L3s.start();else L3s.still();}
+ function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{model:'chip_prata',fps:30,maxDpr:2,dist:9.4,target:[0,1.5,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv,stageTap);{const m1=C.petMood(prefs.pet,C.clock().hour,C.clock().key);L3s.setBase(m1.base);L3s.setMood(m1.state);}if(motionOn())L3s.start();else L3s.still();}
  panel.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)panel.querySelectorAll('details').forEach(o=>{if(o!==d)o.open=false;});}));
  let tapN=-1;
  function stageTap(){const pick=[['hello','ok'],['cheer','ok'],['spin','ok'],['talk','water'],['oops','bad'],['cheer','ok'],['hello','water'],['talk','walk']];let i;do{i=Math.floor(Math.random()*pick.length);}while(i===tapN);tapN=i;const [clip,kind]=pick[i];if(L3s)L3s.play(clip);if(L3i)L3i.play(clip);const text=C.phrase('divertido',kind);advice.textContent=text;try{if(prefs.voiceName!=='__off'&&window.EvoFeedback&&EvoFeedback.clipFor(text))EvoFeedback.say(text);}catch(err){}}
@@ -122,7 +122,7 @@
   $('#pet-earn').textContent=p.racao>=C.PET.maxRation?'Estoque de ração cheio. Dê uma ração a ele!':falta!==null?`Faltam ${falta} XP para a próxima ração (a cada ${C.PET.xpPerRation} XP).`:'';
   const chip=$('#lion-mood');chip.textContent=m.label;chip.dataset.mood=m.state;$('#lion-sub').textContent=`Dia ${C.petDays(p,Date.now())} juntos`;
   icon.dataset.mood=m.state;icon.setAttribute('aria-label',`Abrir Lion Suheth, humor: ${m.label}. Arraste para mover`);
-  [L3i,L3s].forEach(l=>{if(l)l.setBase(m.base);});return m;}
+  [L3i,L3s].forEach(l=>{if(l){l.setBase(m.base);l.setMood(m.state);}});return m;}
  function petRefresh(){petSync();return renderPet();}
  const petLines={feliz:['Estou radiante! Obrigado pela força nos estudos.','Barriga cheia e cabeça boa. Bora evoluir!'],fome:['Minha barriga tá roncando... Uma aulinha rende ração pra mim!','Sem ração eu murcho. Estuda um pouquinho?'],sono:['Zzz... soneca merecida?','Já passou da hora de descansar. Amanhã a gente continua.']};
  root.addEventListener('click',e=>{const b=e.target.closest('[data-pet]');if(!b)return;const k=b.dataset.pet;petSync();let r,m;

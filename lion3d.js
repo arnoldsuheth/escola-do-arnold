@@ -364,6 +364,8 @@
   const fpsGap=1000/(opts.fps||30);
   function frame(now,force){raf=0;if(!force&&!running)return;const dt=Math.min(.1,Math.max(.001,(now-(last||now))/1000)||.016);if(!force&&now-last<fpsGap-2){raf=requestAnimationFrame(frame);return;}last=now;step(dt);draw();
    if(running&&(motion||clip!==base||parts.length||Math.abs(yawVel)>.02)){raf=requestAnimationFrame(frame);}else if(running){running=false;}}
+  const MOODC={feliz:[.25,1,.5],fome:[1,.38,.25],sono:[.35,.5,1]};
+  function setMood(s){const c=MOODC[s];if(!c)return;['core','dot','pad'].forEach(k=>{const n=T[k];if(n&&n.mat){n.mat.emis=c.slice();n.mat.color=c.map(x=>x*.2);}});if(!running)still();}
   function setBase(n){if(!CLIPS[n])return;const was=clip===base;base=n;if(was){clip=n;clipT=0;}if(!running)still();}
   function start(){if(running)return;running=true;last=0;if(!raf)raf=requestAnimationFrame(frame);}
   function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;}
@@ -374,7 +376,7 @@
    el.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==id)return;const dx=e.clientX-lx,now=performance.now(),dt=Math.max(1,now-lt);mv+=Math.abs(dx);yawUser+=dx*.012;yawVel=dx*.012/(dt/1000);lx=e.clientX;lt=now;if(!motion)still();});
    const end=e=>{if(e.pointerId!==id)return;const tap=e.type==='pointerup'&&mv<8&&performance.now()-t0<450;dragging=false;id=null;if(tap&&onTap){try{onTap();}catch(_){}}if(Math.abs(yawVel)>9)yawVel=Math.sign(yawVel)*9;start();};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
    el.addEventListener('dblclick',()=>{yawUser=Math.round(yawUser/TAU)*TAU;yawVel=0;if(!motion)still();else start();});}
-  return {play,setBase,start,stop,still,drag,burst,setMotion(v){motion=!!v;if(!motion)stop();},isMotion:()=>motion,setYaw(v){yawUser=v;},resize,canvas,faces:FACES,
+  return {play,setBase,setMood,start,stop,still,drag,burst,setMotion(v){motion=!!v;if(!motion)stop();},isMotion:()=>motion,setYaw(v){yawUser=v;},resize,canvas,faces:FACES,
    dispose(){stop();try{const x=gl.getExtension('WEBGL_lose_context');x&&x.loseContext();}catch(_){}}};
  }
  function supported(){try{const c=document.createElement('canvas');return !!(c.getContext('webgl')||c.getContext('experimental-webgl'));}catch(e){return false;}}
