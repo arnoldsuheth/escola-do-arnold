@@ -269,7 +269,9 @@ function flame(cold){ return `<svg class="flame ${cold?"cold":""}" viewBox="0 0 
 function badge(lv, size=64){ const c = lv.cor; return `<svg class="lvlbadge" style="width:${size}px;height:${size*1.12}px" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="bg${lv.n}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><path d="M32 2l28 16v36L32 70 4 54V18z" fill="#0E131C" stroke="url(#bg${lv.n})" stroke-width="3"/><text x="32" y="44" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:22px;fill:#fff">${lv.n}</text></svg>`; }
 function starRow(n, size=16){ return `<span class="stars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" style="width:${size}px;height:${size}px" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=n?"#22D3EE":"rgba(255,255,255,.12)"}"/></svg>`).join("")}</span>`; }
 function ring(p, size, stroke, color, label){ const r = (size-stroke)/2, c = 2*Math.PI*r, v = Math.max(0, Math.min(1, p)); return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="${stroke}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c*v} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/>${label ? `<text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" style="font-size:${size/4.4}px">${label}</text>` : ""}</svg>`; }
-const CREST_BIG = `<svg class="crest" viewBox="0 0 80 80" aria-hidden="true"><defs><linearGradient id="cg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><rect x="2" y="2" width="76" height="76" rx="22" fill="url(#cg)"/><text x="40" y="50" text-anchor="middle" style="font-family:var(--f-d);font-weight:800;font-size:28px;fill:#0B0E14">AS</text></svg>`;
+let _crestN = 0;
+const crestSVG = () => { const p = "cr" + (++_crestN); return `<svg class="crest" viewBox="14 8 64 82" aria-hidden="true"><defs><linearGradient id="${p}T" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#C4B5FD"/><stop offset="1" stop-color="#67E8F9"/></linearGradient><linearGradient id="${p}L" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#7C3AED"/><stop offset="1" stop-color="#4F46E5"/></linearGradient><linearGradient id="${p}R" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#22D3EE"/></linearGradient></defs><polygon points="44,22 60,31 60,50 44,41" fill="url(#${p}L)"/><polygon points="60,31 76,22 76,41 60,50" fill="url(#${p}R)"/><polygon points="60,13 76,22 60,31 44,22" fill="url(#${p}T)"/><polygon points="18,40 34,49 34,68 18,59" fill="url(#${p}L)"/><polygon points="34,49 50,40 50,59 34,68" fill="url(#${p}R)"/><polygon points="34,31 50,40 34,49 18,40" fill="url(#${p}T)"/><polygon points="42,58 58,67 58,86 42,77" fill="url(#${p}L)"/><polygon points="58,67 74,58 74,77 58,86" fill="url(#${p}R)"/><polygon points="58,49 74,58 58,67 42,58" fill="url(#${p}T)"/></svg>`; };
+const CREST_BIG = crestSVG();
 
 /* ===================== moldura ===================== */
 const NAV = [["hoje","Painel","hoje"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["perfil","Perfil","perfil"]];
@@ -277,10 +279,10 @@ const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
 const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
-  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution Lab</b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
+  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
    ${NAV.map(([k,t,i]) => `<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
-  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${CREST_BIG.replace(/"cg"/,'"cg2"').replace("url(#cg)","url(#cg2)")}<span><b>Evolution Lab</b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
+  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
   <nav class="tabbar" aria-label="Seções">${NAV.map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
 }
@@ -725,7 +727,7 @@ function starfield(){
 function telaLogin(cofre){
   const sd = saudacao();
   $("#app").innerHTML = `<div class="login"><canvas id="stars"></canvas><form class="login-box" id="login-form" autocomplete="on">
-   ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Evolution Lab</h1><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
+   ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Evolution <span class="gtext">Lab</span></h1><div class="eyebrow" style="margin-top:6px">conhecimento em blocos</div><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
    <input type="text" name="username" value="${esc(cofre && cofre.user || HOST)}" autocomplete="username" hidden>
    <label class="field">Senha<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
    <label class="row small" style="gap:10px;cursor:pointer"><input type="checkbox" id="lembrar" checked style="width:20px;height:20px;accent-color:#22D3EE"> Manter conectado neste aparelho</label>
@@ -789,7 +791,7 @@ async function entrar(fazerPull){
 /* ===================== início ===================== */
 (async function boot(){
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  $("#app").innerHTML = `<div class="login"><div style="text-align:center">${CREST_BIG.replace('class="crest"','class="crest" style="width:72px;height:72px"')}<p class="muted">Abrindo a escola…</p></div></div>`;
+  $("#app").innerHTML = `<div class="login"><div style="text-align:center">${crestSVG().replace('class="crest"','class="crest" style="width:64px;height:80px"')}<p class="muted">Abrindo a escola…</p></div></div>`;
   const sess = lsGet("ea-sess");
   const cofreP = fetchCofre();
   if (sess && sess.key){
