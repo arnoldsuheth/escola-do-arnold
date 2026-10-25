@@ -236,10 +236,10 @@
   function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;}
   function still(){step(.016);draw();}
   /* arrastar no palco gira o Lion 360 graus com inércia */
-  function drag(el){let lx=0,lt=0,id=null;
-   el.addEventListener('pointerdown',e=>{if(e.button!==0)return;id=e.pointerId;lx=e.clientX;lt=performance.now();dragging=true;yawVel=0;try{el.setPointerCapture(id);}catch(_){}start();});
-   el.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==id)return;const dx=e.clientX-lx,now=performance.now(),dt=Math.max(1,now-lt);yawUser+=dx*.012;yawVel=dx*.012/(dt/1000);lx=e.clientX;lt=now;if(!motion)still();});
-   const end=e=>{if(e.pointerId!==id)return;dragging=false;id=null;if(Math.abs(yawVel)>9)yawVel=Math.sign(yawVel)*9;start();};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  function drag(el,onTap){let lx=0,lt=0,id=null,mv=0,t0=0;
+   el.addEventListener('pointerdown',e=>{if(e.button!==0)return;id=e.pointerId;lx=e.clientX;lt=performance.now();t0=lt;mv=0;dragging=true;yawVel=0;try{el.setPointerCapture(id);}catch(_){}start();});
+   el.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==id)return;const dx=e.clientX-lx,now=performance.now(),dt=Math.max(1,now-lt);mv+=Math.abs(dx);yawUser+=dx*.012;yawVel=dx*.012/(dt/1000);lx=e.clientX;lt=now;if(!motion)still();});
+   const end=e=>{if(e.pointerId!==id)return;const tap=e.type==='pointerup'&&mv<8&&performance.now()-t0<450;dragging=false;id=null;if(tap&&onTap){try{onTap();}catch(_){}}if(Math.abs(yawVel)>9)yawVel=Math.sign(yawVel)*9;start();};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
    el.addEventListener('dblclick',()=>{yawUser=Math.round(yawUser/TAU)*TAU;yawVel=0;if(!motion)still();else start();});}
   return {play,start,stop,still,drag,burst,setMotion(v){motion=!!v;if(!motion)stop();},isMotion:()=>motion,setYaw(v){yawUser=v;},resize,canvas,faces:FACES,
    dispose(){stop();try{const x=gl.getExtension('WEBGL_lose_context');x&&x.loseContext();}catch(_){}}};

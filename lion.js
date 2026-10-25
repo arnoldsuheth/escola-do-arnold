@@ -99,7 +99,10 @@
  function l3play(k){const c=clipOf[k]||k;[L3i,L3s].forEach(l=>{if(l)l.play(c);});}
  function initIcon(){if(L3i||!l3ok||root.hidden)return;try{L3i=Lion3D.create(icon.querySelector('canvas.lion-3d'),{fps:20,maxDpr:2,dist:7.8,target:[0,1.55,0],motion:motionOn()});}catch(e){L3i=null;}if(!L3i)return;icon.classList.add('l3');if(motionOn()&&!document.hidden)L3i.start();else L3i.still();}
  function l3motion(){const m=motionOn();[L3i,L3s].forEach(l=>{if(!l)return;l.setMotion(m);if(m&&!document.hidden)l.start();else l.still();});}
- function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{fps:30,maxDpr:2,dist:9.2,target:[0,1.6,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv);if(motionOn())L3s.start();else L3s.still();}
+ function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{fps:30,maxDpr:2,dist:9.2,target:[0,1.6,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv,stageTap);if(motionOn())L3s.start();else L3s.still();}
+ panel.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)panel.querySelectorAll('details').forEach(o=>{if(o!==d)o.open=false;});}));
+ let tapN=-1;
+ function stageTap(){const pick=[['hello','ok'],['cheer','ok'],['spin','ok'],['talk','water'],['oops','bad'],['cheer','ok'],['hello','water'],['talk','walk']];let i;do{i=Math.floor(Math.random()*pick.length);}while(i===tapN);tapN=i;const [clip,kind]=pick[i];if(L3s)L3s.play(clip);if(L3i)L3i.play(clip);const text=C.phrase('divertido',kind);advice.textContent=text;try{if(prefs.voiceName!=='__off'&&window.EvoFeedback&&EvoFeedback.clipFor(text))EvoFeedback.say(text);}catch(err){}}
  function killStage(){if(L3s){L3s.dispose();L3s=null;}}
  root.addEventListener('click',e=>{const b=e.target.closest('[data-l3]');if(!b)return;const k=b.dataset.l3;if(L3s)L3s.play(k);if(L3i)L3i.play(k);});
  if(!l3ok){const st=panel.querySelector('.lion-stage');if(st)st.hidden=true;}
