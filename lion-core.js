@@ -4,7 +4,7 @@
   const fields=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'}).formatToParts(now).map(p=>[p.type,p.value]));
   return {hour:Number(fields.hour),day:fields.weekday,key:`${fields.year}-${fields.month}-${fields.day}`,date:new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',weekday:'long',day:'numeric',month:'long'}).format(now),time:new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(now)};
  }
- function greeting(now,tone){const c=clock(now),hi=c.hour>=6&&c.hour<12?'Bom dia':c.hour>=12&&c.hour<18?'Boa tarde':'Boa noite';if(tone==='firme')return `${hi}. Hoje é ${c.date}. Vamos ao que importa.`;if(tone==='motivador')return `${hi}! Sou o Lion Cristal. Hoje é ${c.date}, um ótimo dia para avançar um passo.`;return `${hi}! Sou o Lion Cristal. Hoje é ${c.date}. Vamos evoluir juntos?`;}
+ function greeting(now,tone){const c=clock(now),hi=c.hour>=6&&c.hour<12?'Bom dia':c.hour>=12&&c.hour<18?'Boa tarde':'Boa noite';if(tone==='firme')return `${hi}. Hoje é ${c.date}. Vamos ao que importa.`;if(tone==='motivador')return `${hi}! Sou o Lion Suheth. Hoje é ${c.date}, um ótimo dia para avançar um passo.`;return `${hi}! Sou o Lion Suheth. Hoje é ${c.date}. Vamos evoluir juntos?`;}
  function suggestion(hash,done,now){
   const c=clock(now);
   if(c.hour<6)return 'Já é madrugada. Que tal anotar sua próxima tarefa e dar espaço ao descanso?';

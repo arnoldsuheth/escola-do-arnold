@@ -43,7 +43,7 @@ Progresso por área recolhível, em caixas com barra, percentual e brilho discre
 
 Medidores circulares de 20 blocos aplicados somente em Progresso por área (Claude, Programação, Design e Faculdade). Mantidas as cores por percentual e o brilho discreto. Nenhuma alteração nas árvores, demais medidores, pontuação ou dados.
 
-## Lion Cristal
+## Lion Suheth
 
 Mascote selecionado com arte transparente, movimento discreto, botão móvel e janela de apoio arrastável. Balão de fala acima do mascote: saudações pela data e hora de Brasília, sugestões de estudo conforme página/período do dia e missões concluídas; água a cada 20 minutos e caminhada a cada 1 hora de aba visível e em foco. A janela só abre por clique. Lembretes podem ser silenciados; animação respeita movimento reduzido. Regras locais, sem IA conectada, sem custos de API ou notificações fora da plataforma. Preferências locais separadas do progresso; nenhuma alteração no XP, árvores ou cursos. Testes de regras de horário, contexto e lembretes adicionados (13 testes no total).
 

@@ -498,9 +498,52 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 
 @media(max-width:860px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}.row{max-width:100%}.card,.course-hero,.mod,.disc,.quiz,.sheet-in,.modal-in{min-width:0;overflow-wrap:anywhere}.sheet-in{max-height:88dvh}.modal-in{max-height:88dvh;overflow:auto}.password-row{flex-wrap:wrap}.password-row input{flex-basis:160px}.password-row button{min-height:44px}.ttabs button,.chip,.btn.sm,.tabbar a{min-height:44px}pre{max-width:100%}.wrap{padding-right:max(14px,env(safe-area-inset-right,0px));padding-left:max(14px,env(safe-area-inset-left,0px))}input,textarea,select{scroll-margin-top:110px;scroll-margin-bottom:110px}}
 
+
+/* ===== v26: logo maior, topo aproveitado, saudação que recolhe, frase com digitação ===== */
+.brand{gap:14px}.rail .crest{width:58px;height:58px;filter:drop-shadow(0 4px 14px rgba(124,92,255,.45))}.rail .brand b{font-size:1.22rem}.rail .brand small{font-size:.78rem;margin-top:3px}
+.topbar .crest{width:46px;height:46px;filter:drop-shadow(0 3px 10px rgba(124,92,255,.45))}.topbar .brand b{font-size:1.1rem}
+.crumb{display:none;margin-right:auto;font-family:var(--f-m);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.crumb:not(:empty)::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:10px;background:var(--grad);vertical-align:1px}
+@media (min-width:861px){.crumb{display:block}.topbar{padding-top:14px;padding-bottom:14px}.topbar .pill{padding:8px 14px;font-size:.86rem}}
+.wrap{max-width:1500px}
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr);gap:16px 30px;align-items:center;margin-bottom:6px}
+.hero-main{min-width:0;position:relative}
+.hero-body{max-height:230px;overflow:hidden;transition:max-height .5s cubic-bezier(.3,.7,.2,1),opacity .35s,transform .5s}
+.hero[data-open="0"] .hero-body{max-height:0;opacity:0;transform:translateY(-8px)}
+.hero h1{font-size:clamp(2rem,4.6vw,3.2rem);letter-spacing:-.035em;line-height:1.04}
+.hero h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{margin-top:12px;font-size:1rem;line-height:1.5;color:var(--muted,#9AA4B5);max-width:34ch;text-wrap:pretty}
+.hero-toggle{display:inline-flex;align-items:center;gap:10px;min-height:40px;padding:8px 14px;margin-bottom:10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:linear-gradient(150deg,rgba(255,255,255,.1),rgba(255,255,255,.02));backdrop-filter:blur(14px);color:var(--text);font:600 .9rem var(--f-b,inherit);cursor:pointer}
+.hero[data-open="1"] .hero-hi{display:none}
+.hero[data-open="1"] .hero-toggle::before{content:"recolher";font:.72rem var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.hero-hi b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-chev{width:9px;height:9px;border-right:2px solid var(--cyan);border-bottom:2px solid var(--cyan);transform:rotate(-135deg) translate(-2px,-2px);transition:transform .3s}
+.hero[data-open="0"] .hero-chev{transform:rotate(45deg) translate(-2px,-2px)}
+.quote{margin:0;position:relative;padding:22px 24px 20px 26px;border-radius:18px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(34,211,238,.06) 60%,rgba(255,255,255,.03));backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 18px 50px -24px rgba(124,92,255,.6)}
+.quote::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:3px;background:var(--grad)}
+.quote-mark{position:absolute;right:18px;top:-6px;font:italic 800 5.4rem/1 Georgia,serif;color:rgba(167,139,250,.22);pointer-events:none}
+.quote blockquote{margin:0;min-height:3.4em;font:italic 500 clamp(1.1rem,1.7vw,1.5rem)/1.42 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;color:#EEF0F6;text-wrap:pretty}
+.quote.typing blockquote::after{content:"";display:inline-block;width:2px;height:1.1em;margin-left:3px;vertical-align:-.15em;background:var(--cyan);animation:qcur .7s steps(1) infinite}
+.quote figcaption{margin-top:12px;font:.74rem var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--cyan)}
+@keyframes qcur{50%{opacity:0}}
+.hero[data-open="0"]{grid-template-columns:auto minmax(0,1fr)}
+.hero-pill{grid-column:1/-1;justify-self:end;margin-top:-4px}
+@media (max-width:980px){.hero,.hero[data-open="0"]{grid-template-columns:1fr;gap:10px}.hero-sub{max-width:none}.quote{padding:18px 18px 16px 22px}.quote blockquote{min-height:3.8em}.hero-pill{display:none}}
+@media (prefers-reduced-motion:reduce){.hero-body,.hero-chev{transition:none}.quote.typing blockquote::after{animation:none}}
+/* Lion 3D */
+#lion-icon canvas.lion-3d{display:none;position:relative;z-index:1;width:100%;height:100%;pointer-events:none}
+#lion-icon.l3 canvas.lion-3d{display:block;animation:lion-hover 2.8s ease-in-out infinite}
+#lion-icon.l3 img{display:none}
+#lion-companion.lion-still #lion-icon.l3 canvas.lion-3d{animation:none}
+#lion-icon.l3.talking canvas.lion-3d{animation:none}
+.lion-stage{position:relative;height:clamp(210px,36vh,290px);border-bottom:1px solid #7EE9FF33;background:radial-gradient(ellipse at 50% 85%,rgba(124,92,255,.35),transparent 65%),radial-gradient(ellipse at 50% 30%,rgba(34,211,238,.14),transparent 70%)}
+.lion-stage-cv{width:100%;height:100%;display:block;cursor:grab;touch-action:pan-y}
+.lion-stage-cv:active{cursor:grabbing}
+.lion-stage-btns{position:absolute;left:8px;right:8px;bottom:8px;display:flex;gap:6px;justify-content:center}
+#lion-panel .lion-stage-btns button{min-height:38px;padding:6px 12px;border:1px solid rgba(255,255,255,.2);border-radius:999px;background:linear-gradient(150deg,rgba(255,255,255,.18),rgba(255,255,255,.04));backdrop-filter:blur(10px);color:#E8FBFF;font-size:12px}
 </style>
-<link rel="stylesheet" href="lion.css?v=25">
-<link rel="stylesheet" href="effects.css?v=25">
+<link rel="stylesheet" href="lion.css?v=26">
+<link rel="stylesheet" href="effects.css?v=26">
 </head>
 <body>
 <div id="app"></div>
@@ -510,12 +553,13 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 <script src="cursos.js?v=17"></script>
 <script src="desafios.js?v=17"></script>
 <script src="ilus.js?v=17"></script>
-<script src="progression.js?v=25"></script>
-<script src="feedback.js?v=25"></script>
-<script src="app.js?v=25"></script>
-<script src="practice.js?v=25"></script>
-<script src="lion-core.js?v=25"></script>
-<script src="lion.js?v=25"></script>
+<script src="progression.js?v=26"></script>
+<script src="feedback.js?v=26"></script>
+<script src="app.js?v=26"></script>
+<script src="practice.js?v=26"></script>
+<script src="lion-core.js?v=26"></script>
+<script src="lion3d.js?v=26"></script>
+<script src="lion.js?v=26"></script>
 </body>
 </html>
 

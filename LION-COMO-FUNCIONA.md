@@ -1,4 +1,4 @@
-# Lion Cristal — funcionamento e informações salvas
+# Lion Suheth — funcionamento e informações salvas
 
 ## O que ele faz hoje
 

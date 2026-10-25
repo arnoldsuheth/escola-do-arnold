@@ -341,7 +341,7 @@ function shell(){
   <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
    ${NAV.map(([k,t,i]) => `${k in NAV_GRUPO ? `<div class="navg">${NAV_GRUPO[k]}</div>` : ""}<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
-  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
+  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div class="crumb" id="crumb" aria-hidden="true"></div><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
   <nav class="tabbar" aria-label="Seções">${NAV.filter(n => NAV_TAB.includes(n[0])).map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
 }
@@ -366,6 +366,19 @@ const FRASES = [
  ["Erro no console é professor de graça.",""],
  ["Você não é todo mundo.","BLESSAINT"],
  ["Pequenas aulas, todo dia, viram uma carreira.",""]
+];
+const FILOSOFOS = [
+ ["Não é que tenhamos pouco tempo, é que perdemos muito.","Sêneca · Sobre a brevidade da vida"],
+ ["O que bloqueia o caminho torna-se o caminho.","Marco Aurélio · Meditações"],
+ ["Não são as coisas que perturbam as pessoas, e sim o que pensam sobre elas.","Epicteto · Manual"],
+ ["Aprendemos as artes fazendo: é construindo que se aprende a construir.","Aristóteles · Ética a Nicômaco"],
+ ["Ninguém se banha duas vezes no mesmo rio.","Heráclito · Fragmentos"],
+ ["O começo é a parte mais importante de qualquer trabalho.","Platão · A República"],
+ ["Quem tem um porquê para viver suporta quase qualquer como.","Nietzsche · Crepúsculo dos Ídolos"],
+ ["Conhecimento é poder.","Francis Bacon · Meditationes Sacrae"],
+ ["Aprender sem pensar é inútil; pensar sem aprender é perigoso.","Confúcio · Analectos"],
+ ["Uma vida sem reflexão não vale a pena ser vivida.","Sócrates · Apologia, de Platão"],
+ ["Enquanto ensinamos, aprendemos.","Sêneca · Cartas a Lucílio"]
 ];
 function saudacao(){
   const d = new Date(), h = d.getHours(), dow = d.getDay();
@@ -406,8 +419,14 @@ function viewHoje(){
   const abrev = t => t.split(" ").map(w => w[0]).join("").slice(0,3).toUpperCase();
   const prox = pc ? `#aula-${pc.id}` : "#perfil";
   return `<div class="stack fade">
-  <div class="head"><div><h1>${sd.oi}, <span>${esc(S.nome)}</span></h1><div class="muted small" style="margin-top:4px">${new Date().toLocaleDateString("pt-BR",{weekday:"long"})} · ${sd.sub}</div>${(([f,a]) => `<p class="frase">“${esc(f)}”${a ? ` <span>${esc(a)}</span>` : ""}</p>`)(FRASE_DIA())}</div>
-   <span class="pill">nota geral ${f1(notaGeral())}</span></div>
+  <section class="hero" id="hero" data-open="1">
+   <div class="hero-main">
+    <button type="button" class="hero-toggle" id="heroToggle" aria-expanded="true" aria-controls="heroBody"><span class="hero-hi">${sd.oi}, <b>${esc((S.nome||"").split(" ")[0])}</b></span><span class="hero-chev" aria-hidden="true"></span></button>
+    <div class="hero-body" id="heroBody"><h1>${sd.oi}, <span>${esc(S.nome)}</span></h1><div class="hero-sub">${new Date().toLocaleDateString("pt-BR",{weekday:"long"})} · ${sd.sub}</div></div>
+   </div>
+   ${(([f,a]) => `<figure class="quote" id="quote"><span class="quote-mark" aria-hidden="true">“</span><blockquote data-full="${esc(f)}" aria-label="${esc(f)}"><span class="qt">${esc(f)}</span></blockquote>${a ? `<figcaption>${esc(a)}</figcaption>` : ""}</figure>`)(FRASE_DIA())}
+   <span class="pill hero-pill">nota geral ${f1(notaGeral())}</span>
+  </section>
   <div class="dash">
    <div class="stack">
     <section class="card o2"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
@@ -746,6 +765,7 @@ function render(keep){
   if (!$(".shell", app)){ app.innerHTML = shell(); }
   const r = rota(), s = secao(r);
   $$("[data-nav]").forEach(a => a.dataset.nav === s ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
+  { const cur = $(".rail [aria-current=page]"), cr = $("#crumb"); if (cr) cr.textContent = cur ? cur.textContent.trim() : ""; }
   const y = scrollY, mm = r.match(/^curso-(.+)-m(\d+)$/);
   if (mm){ OPEN_MODS.add(mm[1]+":"+mm[2]); FECHADOS.delete(mm[1]+":"+mm[2]); }
   if (!S.presentes) checarPresentes(false);
@@ -753,6 +773,7 @@ function render(keep){
   const dk = r === "desafio-dia" ? "dia:" + hoje() : r.startsWith("desafio-") ? r.slice(8).replace(/-(\d+|boss)$/, ":$1") : null;
   const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProg() : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : (r === "fac" || r.startsWith("fac-")) ? viewFac() : r === "trajetoria" ? viewTrajetoria() : r === "presentes" ? viewPresentes() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(mm ? mm[1] : r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
   $("#view").innerHTML = v;
+  heroInit();
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
   if (keep) scrollTo(0, y);
   else if (mm) setTimeout(() => { const d = document.querySelector(`details[data-mod="${mm[1]}:${mm[2]}"]`); const t = d && (d.querySelector(".les.nx") || d); t && t.scrollIntoView({block:"center"}); }, 80);
@@ -760,6 +781,27 @@ function render(keep){
   if (aq && !keep){ QZ[aid] = {i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0}; repintarQuiz(aid); setTimeout(() => { const z = $("#quiz"); z && z.scrollIntoView({block:"start"}); }, 60); }
   if (r.startsWith("prog-") && !keep && PROG_AULAS.some(a => String(a[0]) === r.slice(5))) setTimeout(() => abrirSheet(r.slice(5)), 30);
   document.title = (r.startsWith("aula-") ? ((CURSO_CLAUDE.find(x => x.id === aid)||{}).titulo || "Aula") + " · " : "") + "Evolution Lab";
+}
+/* Saudação que recolhe e frase com efeito de digitação (uma vez por dia; sem movimento se o aparelho pedir) */
+function heroInit(){
+  const h = $("#hero"); if (!h) return;
+  const calmo = matchMedia("(prefers-reduced-motion: reduce)").matches, dia = hoje();
+  let st = {}; try { st = JSON.parse(sessionStorage.getItem("evolab-hero") || "{}"); } catch(e){}
+  const visto = st.dia === dia;
+  const set = open => { h.dataset.open = open ? "1" : "0"; const b = $("#heroToggle"); if (b) b.setAttribute("aria-expanded", open ? "true" : "false"); };
+  let timer = 0;
+  const save = () => { try { sessionStorage.setItem("evolab-hero", JSON.stringify({dia})); } catch(e){} };
+  $("#heroToggle").onclick = () => { clearTimeout(timer); set(h.dataset.open !== "1"); };
+  const q = $("#quote .qt"), full = q ? q.parentNode.dataset.full : "";
+  if (visto || calmo){ set(!visto ? true : false); if (!visto && !calmo) save(); }
+  else {
+    set(true); save();
+    if (q){
+      q.textContent = ""; q.parentNode.classList.add("typing"); let i = 0;
+      const tick = () => { if (!document.body.contains(q)) return; i++; q.textContent = full.slice(0, i); if (i < full.length) setTimeout(tick, 24 + Math.random() * 28); else { q.parentNode.classList.remove("typing"); timer = setTimeout(() => set(false), 5000); } };
+      setTimeout(tick, 350);
+    } else timer = setTimeout(() => set(false), 6000);
+  }
 }
 let lastR = null;
 addEventListener("hashchange", () => { if (!SESS && !LOCAL) return; const r = rota(); if (r !== lastR){ lastR = r; fecharModal(); render(); scrollTo(0,0); } });
@@ -1276,7 +1318,7 @@ window.EvoLion = {
   help: () => copiar(textoAjuda())
 };
 
-const FRASE_DIA = () => FRASES[hash32(hoje()) % FRASES.length];
+const FRASE_DIA = () => { const h = hash32(hoje()); const pool = h % 10 < 7 ? FILOSOFOS : FRASES; return pool[Math.floor(h / 10) % pool.length]; };
 
 /* ===================== eventos ===================== */
 document.addEventListener("click", e => {
