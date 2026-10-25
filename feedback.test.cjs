@@ -31,3 +31,10 @@ test('backgrounding stops ongoing speech and never starts another utterance',()=
  const {api,env,calls,listeners}=load();api.respond(true);env.document.hidden=true;listeners.visibilitychange();api.respond(false);
  assert.equal(calls.cancels,2);assert.equal(calls.spoken.length,1);
 });
+
+test('chosen voice, speed and tone phrases are honoured, with fallback when the voice is gone',()=>{
+ const {api,calls,env}=load();const other={lang:'pt-BR',localService:false,name:'Outra'};env.speechSynthesis.getVoices=()=>[{lang:'en-US',name:'E'},{lang:'pt-BR',localService:true,name:'Padrao'},other];
+ api.configure({voiceName:'Outra',rate:1.15,phrase:k=>k==='ok'?'Correto.':'Errou.'});api.respond(true);
+ assert.equal(calls.spoken[0].voice,other);assert.equal(calls.spoken[0].text,'Correto.');assert.ok(Math.abs(calls.spoken[0].rate-1.08*1.15)<1e-9);
+ api.configure({voiceName:'Sumiu'});api.respond(false);assert.equal(calls.spoken[1].voice.name,'Padrao');assert.equal(calls.events[1].detail.text,'Errou.');
+});

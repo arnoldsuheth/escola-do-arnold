@@ -1,4 +1,4 @@
-const CACHE = "evolab-v24";
+const CACHE = "evolab-v25";
 const SHELL = ["./", "index.html", "app.js", "lion-core.js", "lion.js", "lion.css", "feedback.js", "effects.css", "assets/lion-cristal.webp", "progression.js", "practice.js", "content.js", "cursos.js", "desafios.js", "ilus.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-180.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

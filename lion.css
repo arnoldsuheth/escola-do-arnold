@@ -41,3 +41,10 @@
 @keyframes lion-cheer{0%,100%{transform:translateY(-3px) rotate(-3deg)}35%{transform:translateY(-19px) rotate(9deg) scale(1.06)}65%{transform:translateY(-6px) rotate(-6deg)}}
 @keyframes lion-oops{0%,100%{transform:translateY(-3px) rotate(0)}25%{transform:translate(-5px,-5px) rotate(-8deg)}65%{transform:translate(5px,-4px) rotate(8deg)}}
 @media(prefers-reduced-motion:reduce){#lion-companion *{animation:none!important}#lion-icon::before{opacity:.24}}
+
+/* Preferências ampliadas */
+#lion-panel .lion-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#lion-panel .lion-settings select{max-width:170px}
+.lion-row{display:flex;gap:10px;flex-wrap:wrap}.lion-row label{flex:1;min-width:120px}
+.lion-test{min-height:44px;padding:8px 12px;border:1px solid #7CEBFF55;border-radius:8px;background:#1E355066;color:#D8F9FF}
+#lion-panel .lion-actions button[data-lion-action=help]{flex:1 1 100%}

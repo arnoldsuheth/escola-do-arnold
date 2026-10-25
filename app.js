@@ -240,7 +240,7 @@ function act(fn, k, txt, ev, reviewId){
   if (delta > 0){ floatXP("+" + delta + " XP", ev); som("xp"); }
   else if (hd > 0){ floatXP("+" + hd + " hobby", ev); som("ok"); if (S.log[0] && S.log[0].t > Date.now() - 2000) S.log[0].hb = hd; }
   if (lvA.n > lvB) setTimeout(() => levelUp(lvA), 500);
-  else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+10 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
+  else if (bonusAgora) setTimeout(() => { lionEvento("bonus"); modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+10 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true); }, 450);
   paintTop();
   setTimeout(() => checarPresentes(true), 50);
   return delta;
@@ -280,7 +280,8 @@ let toastT;
 function toast(msg){ let t = $(".toast"); if (!t){ t = document.createElement("div"); t.className = "toast"; t.setAttribute("role","status"); document.body.appendChild(t); } t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
 function modal(html, festa){ fecharModal(); const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div class="modal-in" role="dialog" aria-modal="true">${html}</div>`; document.body.appendChild(m); m.addEventListener("click", e => { if (e.target === m || e.target.closest("[data-close]")) fecharModal(); }); if (festa){ confetti(); som("done"); } const b = $("button", m); if (b) b.focus(); }
 function fecharModal(){ $$(".modal, .sheet").forEach(m => m.remove()); }
-function levelUp(lv){ som("up"); modal(`${badge(lv, 96)}<span class="eyebrow">Promoção · lvl ${lv.n}</span><h2 style="font-size:1.8rem">Agora você é <span class="gtext">${esc(lv.nome)}</span></h2><p class="muted">${lv.prox ? `Próximo cargo: ${esc(lv.proxNome)} com ${lv.prox} xp.` : "Topo da carreira: Principal."}</p><button class="btn gold" data-close>Continuar</button>`, true); }
+function lionEvento(kind, x){ try { document.dispatchEvent(new CustomEvent("evolab:milestone", {detail:{kind, x}})); } catch(e){} }
+function levelUp(lv){ lionEvento("levelup", lv.nome); som("up"); modal(`${badge(lv, 96)}<span class="eyebrow">Promoção · lvl ${lv.n}</span><h2 style="font-size:1.8rem">Agora você é <span class="gtext">${esc(lv.nome)}</span></h2><p class="muted">${lv.prox ? `Próximo cargo: ${esc(lv.proxNome)} com ${lv.prox} xp.` : "Topo da carreira: Principal."}</p><button class="btn gold" data-close>Continuar</button>`, true); }
 function copiar(txt){
   const ok = () => toast("Copiado. Cole na conversa com o Claude.");
   const fb = () => { const ta = document.createElement("textarea"); ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); let r = false; try { r = document.execCommand("copy"); } catch(e){} ta.remove(); if (r) ok(); else modal(`<h3>Copie o texto</h3><textarea class="input" style="min-height:180px">${esc(txt)}</textarea><button class="btn" data-close>Fechar</button>`); };
@@ -1238,6 +1239,7 @@ function checarPresentes(avisar){
   return novos;
 }
 function mostrarPresente(g, mais){
+  lionEvento("gift", g.t);
   som("up"); confetti && confetti();
   modal(`<span class="tag gold">presente desbloqueado</span><h2 style="margin:10px 0 6px">${esc(g.t)}</h2><p class="muted" style="line-height:1.55">${esc(g.why || g.txt)}</p>${mais ? `<p class="tiny dim">Mais ${mais} ${mais === 1 ? "presente" : "presentes"} esperando em Presentes.</p>` : ""}<div class="row" style="margin-top:14px">${g.url ? `<a class="btn gold" href="${esc(g.url)}" target="_blank" rel="noopener">Abrir material ↗</a>` : ""}<a class="btn" href="#presentes" data-close>Ver todos</a><button class="btn ghost" data-close>Depois</button></div>`, true);
 }
@@ -1253,6 +1255,26 @@ function viewPresentes(){
   </div>`;
 }
 document.addEventListener("click", e => { const g = e.target.closest && e.target.closest("[data-go]"); if (g) location.hash = g.dataset.go; });
+
+/* ===================== ponte com o Lion (preferências sincronizadas, contexto e pedido de ajuda) ===================== */
+function textoAjuda(){
+  const r = rota(), lv = nivel(); let ctx = "Estou no Evolution Lab.";
+  if (r.startsWith("aula-")){ const id = r.slice(5).replace(/-quiz$/, ""), it = CURSO_CLAUDE.find(x => x.id === id); ctx = `Estou numa aula do curso de Claude${it ? `: ${it.titulo}` : ""}.`; }
+  else if (r.startsWith("prog")){ const m = r.match(/^prog-(\d+)/), a = m && PROG_AULAS.find(z => String(z[0]) === m[1]); ctx = `Estou no curso de Programação (BLESSAINT)${a ? `, aula ${a[0]}: ${a[2]}` : ""}.`; }
+  else if (r === "fac" || r.startsWith("fac-")) ctx = "Estou na Faculdade.\n" + textoFac();
+  else if (r.startsWith("curso-")){ const c = extC(r.slice(6).replace(/-m\d+$/, "")); if (c){ const st = extStats(c), px = extProx(c); ctx = `Estou no curso ${c.nome}: ${st.d}/${st.t} aulas${px ? `, próxima: ${px.t}` : ""}.`; } }
+  else if (r === "arena" || r.startsWith("desafio-")) ctx = "Estou na Arena de desafios.";
+  return `Evolution Lab · pedido de ajuda\n${ctx}\nMeu nível na plataforma: ${lv.nome}.\nMinha dúvida: `;
+}
+window.EvoLion = {
+  prefs: () => (S && S.cfg && S.cfg.lion) || null,
+  setPrefs: p => { if (!S) return; S.cfg = S.cfg || {}; S.cfg.lion = p; persist(); },
+  context: () => { try {
+    const provas = S.fac.discs.flatMap(d => (d.entregas || []).filter(e => !e.ok && e.data).map(e => ({id:d.id + ":" + e.t, titulo:e.t, disciplina:facCurto(d.nome), dias:Math.round((new Date(e.data + "T12:00") - new Date(hoje() + "T12:00")) / 864e5)})));
+    return {provas, xpHoje:diasAtivos()[hoje()] || 0, sequencia:streak(), meta:S.cfg.meta || 100};
+  } catch(e){ return null; } },
+  help: () => copiar(textoAjuda())
+};
 
 const FRASE_DIA = () => FRASES[hash32(hoje()) % FRASES.length];
 
