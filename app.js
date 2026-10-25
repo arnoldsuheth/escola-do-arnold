@@ -114,7 +114,7 @@ function claudeStats(){ let done = 0, ps = []; CURSO_CLAUDE.forEach(x => { const
 function progStats(){ let done = 0, ps = []; PROG_AULAS.forEach(([n]) => { const r = S.prog[n]; if (r && r.done){ done++; if (r.tot) ps.push(r.ok/r.tot); } }); return {done, total:PROG_AULAS.length, p:done/PROG_AULAS.length, nota: ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length*10 : null}; }
 function media(d){ const v = ["av1","av2","av3"].map(k => d.notas && d.notas[k]).filter(x => typeof x === "number"); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
 function facStats(){ let ap = 0, ns = [], t = 0, td2 = 0; S.fac.discs.forEach(d => { const m = media(d); if (m !== null){ ns.push(m); if (m >= S.fac.min) ap++; } (d.topicos||[]).concat(d.entregas||[]).forEach(x => { t++; if (x.ok) td2++; }); }); return {discs:S.fac.discs.length, ap, nota: ns.length ? ns.reduce((a,b)=>a+b,0)/ns.length : null, tarefas:t, tdone:td2, p: t ? td2/t : 0}; }
-function xpTotal(){
+function xpLegacy(){
   let x = 0;
   CURSO_CLAUDE.forEach(it => { const r = S.claude[it.id]; if (r && r.done){ const b = it.tipo === "prova" ? [300,200] : it.tipo === "rev" ? [150,100] : [100,50]; x += b[0] + Math.round(b[1]*pct(r)); } });
   Object.values(S.missoes).forEach(a => (a||[]).forEach(v => { if (v) x += 20; }));
@@ -125,11 +125,40 @@ function xpTotal(){
   x += xpExtra() + xpDesafios(true);
   return x;
 }
-const RANKS = [[0,"Estagiário"],[300,"Trainee"],[800,"Júnior I"],[1500,"Júnior II"],[2500,"Pleno I"],[3800,"Pleno II"],[5400,"Sênior"],[7400,"Staff"],[10000,"Principal"]];
-const CARREIRA = ["Estagiário","Júnior","Pleno","Sênior","Staff"];
+const RANKS = EvoProgress.ranks;
+const CARREIRA = ["Formação","Júnior","Pleno","Sênior","Especialista"];
 const carreiraIdx = n => n <= 2 ? 0 : n <= 4 ? 1 : n <= 6 ? 2 : n === 7 ? 3 : 4;
 const RANK_COR = ["#6E7891","#22D3EE","#22D3EE","#34D399","#A78BFA","#A78BFA","#F59E0B","#F472B6","#F472B6"];
-function nivel(v){ v = v ?? xpTotal(); let i = 0; RANKS.forEach((r,k) => { if (v >= r[0]) i = k; }); const cur = RANKS[i], nx = RANKS[i+1]; return {n:i+1, nome:cur[1], cor:RANK_COR[i], xp:v, prox: nx ? nx[0] : null, proxNome: nx ? nx[1] : null, p: nx ? (v-cur[0])/(nx[0]-cur[0]) : 1}; }
+function nivel(v){ const lv = EvoProgress.level(v ?? xpTotal(), S.practice||[]); lv.cor = RANK_COR[lv.n-1]; return lv; }
+function weekKey(){ const d = new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); }
+function scoreSnapshot(){
+  const out = {};
+  CURSO_CLAUDE.forEach(it => { const r=S.claude[it.id]; if (!r || !r.done) return;
+    if (it.tipo === "rev") out["review:"+it.id] = 10;
+    else { out["claude:"+it.id+":lesson"]=20; out["claude:"+it.id+":quiz"]=Math.round(30*pct(r)); }
+  });
+  PROG_AULAS.forEach(([id])=>{const r=S.prog[id]; if(!r || !r.done)return; out["prog:"+id+":lesson"]=20; out["prog:"+id+":quiz"]=r.tot ? Math.round(30*Math.min(1,Math.max(0,(r.ok||0)/r.tot))) : 0;});
+  EXT_CURSOS.forEach(c=>c.mods.forEach((m,mi)=>{if(!modCar(c,mi))return;out["ext:"+c.id+":"+mi]=modFeitas(c,mi)*20;}));
+  S.fac.discs.forEach(d=>{const key="fac:"+d.id+":"; const m=media(d); if(d.aprovada && m!==null && m>=S.fac.min)out[key+"approval"]=200;
+    (d.topicos||[]).forEach((t,i)=>{if(t.ok)out[key+"topic:"+i]=10;});
+    (d.entregas||[]).forEach((t,i)=>{if(t.ok)out[key+"delivery:"+i]=50;});
+  });
+  Object.entries(S.desafios||{}).forEach(([k,r])=>{if(dCarreira(k) && r && r.done)out["arena:"+k]=Math.round(30*dPct(r));});
+  Object.keys(S.bonus).forEach(k=>out["daily:"+k]=10);
+  Object.keys(S.reviews||{}).forEach(k=>out["weekly:"+k]=10);
+  EvoProgress.evidence(S.practice||[]).forEach(e=>out["practice:"+EvoProgress.safeURL(e.url)]=e.type==="project"?150:50);
+  return out;
+}
+function ensureXP(){
+  if (S.xpLedger && S.xpLedger.version===2) return false;
+  const baseline=scoreSnapshot();S.fac.discs.forEach(d=>{const m=media(d);if(m!==null && m>=S.fac.min)baseline["fac:"+d.id+":approval"]=200;});
+  S.xpLedger=EvoProgress.create(xpLegacy(),baseline,Date.now());
+  S.xpLedger.previousRanks=Object.assign({},S.ranks||{});
+  return true;
+}
+function xpTotal(){ensureXP();return EvoProgress.total(S.xpLedger);}
+function pendingPromotion(lv){return lv.prox && lv.xp>=lv.prox && lv.pending.length ? "Projeto pendente para promoção: "+lv.pending.join(", ") : "";}
+
 function notaGeral(){ const ns = [claudeStats().nota, progStats().nota, facStats().nota].filter(x => x !== null); return ns.length ? ns.reduce((a,b)=>a+b,0)/ns.length : null; }
 function xpDia(d){ return S.log.filter(l => l.d === d).reduce((a,l) => a + (l.xp||0), 0); }
 function diasAtivos(){ const m = {}; S.log.forEach(l => { if ((l.xp||0) > 0) m[l.d] = (m[l.d]||0) + l.xp; }); return m; }
@@ -147,13 +176,13 @@ function missoesDia(){
   const dow = new Date().getDay(), pc = proxClaude(), pp = proxProg(), pa = piorAula();
   const fac = S.fac.discs.flatMap(d => (d.topicos||[]).filter(t => !t.ok).map(t => ({d, t})))[0];
   const list = [], dd = S.desafios["dia:" + hoje()];
-  if (dow === 5) return {rest:true, list:[{k:["claude","prog","fac","retry","desafio"], ic:"star", t:"Missão livre (opcional)", s:"Hoje é dia de descanso. Se bater vontade, o Desafio do dia vale.", href:"#desafio-dia", xp:"+50"}]};
-  if (feitoHoje(["claude"])) list.push({k:["claude"], ic:"ia", t:"Curso de Claude", s:"Aula de hoje concluída", href:"#claude", xp:"+150"});
-  else if (pc) list.push({k:["claude"], ic:"ia", t:`Curso de Claude: ${nomeItem(pc)}`, s:pc.titulo, href:`#aula-${pc.id}`, xp:"+150"});
-  if (dow >= 1 && dow <= 4 && feitoHoje(["prog"])) list.push({k:["prog"], ic:"code", t:"Programação", s:"Aula de hoje concluída", href:"#prog", xp:"+100"});
-  else if (dow >= 1 && dow <= 4 && pp) list.push({k:["prog"], ic:"code", t:`Programação: Aula ${pp[0]}`, s:pp[2], href:`#prog-${pp[0]}`, xp:"+100"});
+  if (dow === 5) return {rest:true, list:[{k:["claude","prog","fac","retry","desafio"], ic:"star", t:"Missão livre (opcional)", s:"Hoje é dia de descanso. Se bater vontade, o Desafio do dia vale.", href:"#desafio-dia", xp:"até 30"}]};
+  if (feitoHoje(["claude"])) list.push({k:["claude"], ic:"ia", t:"Curso de Claude", s:"Aula de hoje concluída", href:"#claude", xp:"até 50"});
+  else if (pc) list.push({k:["claude"], ic:"ia", t:`Curso de Claude: ${nomeItem(pc)}`, s:pc.titulo, href:`#aula-${pc.id}`, xp:"até 50"});
+  if (dow >= 1 && dow <= 4 && feitoHoje(["prog"])) list.push({k:["prog"], ic:"code", t:"Programação", s:"Aula de hoje concluída", href:"#prog", xp:"até 50"});
+  else if (dow >= 1 && dow <= 4 && pp) list.push({k:["prog"], ic:"code", t:`Programação: Aula ${pp[0]}`, s:pp[2], href:`#prog-${pp[0]}`, xp:"até 50"});
   if (fac) list.push({k:["fac"], ic:"fac", t:`Faculdade: ${fac.t.t}`, s:fac.d.nome, href:"#fac", xp:"+10"});
-  list.push({k:["desafio"], ic:"sword", t:"Desafio do dia", s: dd && dd.done ? `Feito: ${dd.best}/${dd.total}` : "6 perguntas sorteadas da sua carreira", href:"#desafio-dia", xp:"+40"});
+  list.push({k:["desafio"], ic:"sword", t:"Desafio do dia", s: dd && dd.done ? `Feito: ${dd.best}/${dd.total}` : "6 perguntas sorteadas da sua carreira", href:"#desafio-dia", xp:"até 30"});
   if (pa) list.push({k:["retry"], ic:"bolt", t:"Revisão relâmpago", s:`Refaça o quiz de ${nomeItem(pa)}: ${pa.titulo}`, href:`#aula-${pa.id}-quiz`, xp:"+XP"});
   return {rest:false, list:list.slice(0, 4)};
 }
@@ -192,20 +221,26 @@ function arvore(){
 }
 
 /* ===================== ação com XP ===================== */
-function act(fn, k, txt, ev){
+function act(fn, k, txt, ev, reviewId){
   const before = xpTotal(), lvB = nivel(before).n, hb0 = xpHobby();
+  EvoProgress.reconcile(S.xpLedger, scoreSnapshot(), true);
   fn();
+  if (k === "retry"){
+    const id = reviewId;
+    if (id && CURSO_CLAUDE.some(x=>x.id===id && !x.tipo)){S.reviews=S.reviews||{};S.reviews[id+":"+weekKey()]=true;}
+  }
+  EvoProgress.reconcile(S.xpLedger, scoreSnapshot(), k === "import");
   let delta = xpTotal() - before; const hd = xpHobby() - hb0;
-  if (delta !== 0 || txt){ S.log.unshift({t:Date.now(), d:hoje(), k, txt, xp: k === "import" ? 0 : delta}); S.log = S.log.slice(0, 400); }
+  S.log.unshift({t:Date.now(), d:hoje(), k, txt:txt||"Atividade atualizada", xp:k === "import" ? 0 : delta, scoreVersion:2}); S.log=S.log.slice(0,400);
   let bonusAgora = false;
-  if (delta > 0 && !S.bonus[hoje()] && missoesCompletas()){ S.bonus[hoje()] = true; S.log.unshift({t:Date.now(), d:hoje(), k:"bonus", txt:"Missões do dia completas", xp:50}); bonusAgora = true; }
+  if (k !== "import" && (delta > 0 || k === "retry") && !S.bonus[hoje()] && missoesCompletas()){ S.bonus[hoje()] = true; EvoProgress.reconcile(S.xpLedger, scoreSnapshot(), false); S.log.unshift({t:Date.now(), d:hoje(), k:"bonus", txt:"Missões do dia completas", xp:10,scoreVersion:2}); bonusAgora = true; }
   registrarRank();
   persist();
   const total = xpTotal(), lvA = nivel(total);
   if (delta > 0){ floatXP("+" + delta + " XP", ev); som("xp"); }
   else if (hd > 0){ floatXP("+" + hd + " hobby", ev); som("ok"); if (S.log[0] && S.log[0].t > Date.now() - 2000) S.log[0].hb = hd; }
   if (lvA.n > lvB) setTimeout(() => levelUp(lvA), 500);
-  else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+50 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
+  else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+10 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
   paintTop();
   setTimeout(() => checarPresentes(true), 50);
   return delta;
@@ -339,6 +374,7 @@ function saudacao(){
 function viewHoje(){
   const lv = nivel(), st = streak(), hx = xpDia(hoje()), meta = S.cfg.meta, sd = saudacao(), md = missoesDia();
   const cs = claudeStats(), ps = progStats(), fs = facStats(), pc = proxClaude(), pp = proxProg();
+  const design = extC("criadores"), ds = design ? extStats(design) : {d:0,t:0};
   const at = diasAtivos(), ci = carreiraIdx(lv.n), arv = arvore(), attrs = atributos(), med = medalhas();
   const seg = new Date(); seg.setDate(seg.getDate() - ((seg.getDay()+6)%7));
   const NOMES = ["dom","seg","ter","qua","qui","sex","sáb"];
@@ -354,9 +390,9 @@ function viewHoje(){
    <div class="stack">
     <section class="card o2"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
      <div class="career">${CARREIRA.map((c,i) => `${i ? `<i class="${i<=ci?"on":""}"></i>` : ""}<span class="${i<ci?"on":i===ci?"cur":""}">${c}</span>`).join("")}</div>
-     <div class="stats3"><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">aulas</div><div class="v num">${cs.done+ps.done}<small>/${cs.total+ps.total}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
-     <div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${lv.prox-lv.xp} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div></section>
-    <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +50 xp"}</span></div>
+     <div class="stats3"><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">aulas dos cursos</div><div class="v num">${cs.done+ps.done+ds.d}<small>/${cs.total+ps.total+ds.t}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
+     <div class="small muted" style="margin-top:10px">Claude: ${cs.done}/${cs.total} · Programação: ${ps.done}/${ps.total} · Design: ${ds.d}/${ds.t}<br>Faculdade: ${S.fac.discs.filter(d=>d.aprovada && media(d)!==null && media(d)>=S.fac.min).length}/${fs.discs} disciplinas aprovadas · ${fs.tdone}/${fs.tarefas} tópicos e entregas concluídos</div><div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${Math.max(0,lv.prox-lv.xp)} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div><p class="small" style="color:var(--amber);margin:8px 0 0">${esc(pendingPromotion(lv))}</p><p class="tiny muted" style="margin:8px 0 0">Os cargos representam níveis do jogo. A prática demonstra seu domínio técnico.</p></section>
+    <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +10 xp"}</span></div>
      <div style="margin-top:6px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
      <div class="row" style="margin-top:12px"><a class="btn gold" href="${prox}">${pc ? `Continuar quest · ${esc(nomeItem(pc))}` : "Ver certificado"}</a>${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div></section>
     <div class="trees o4"><div class="ttabs" role="tablist">${[["prog","Programação"],["claude","Claude"],["fac","Faculdade"],["design","Design"]].map(([k,t]) => `<button role="tab" data-ttab="${k}" aria-selected="${TREE_TAB===k}">${t}</button>`).join("")}</div>
@@ -365,7 +401,7 @@ function viewHoje(){
    </div>
    <div class="stack">
     <section class="card o5"><span class="k">Atributos</span>${attrs.map(([n,v,c]) => `<div class="attr"><span>${n}</span><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Crescem conforme você conclui aulas, tarefas e disciplinas.</div></section>
-    <section class="card o3"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono dim">meta ${hx}/${meta} xp</span></div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
+    <section class="card o3"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono" style="color:${hx >= meta ? "var(--green)" : "var(--muted)"}">${hx >= meta ? "Meta atingida" : "Em andamento"}</span></div><div class="small muted" style="margin-top:8px">Hoje: <b class="num" style="color:var(--text)">${hx} XP</b> · Meta diária: ${meta} XP</div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
     <section class="card o6"><span class="k">Conquistas</span><div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">${conq.map(([t,d,on,cor]) => `<div class="badge-mini ${on?"":"off"}" title="${esc(d)}"><i style="background:${cor}">${abrev(t)}</i><span style="min-width:0;line-height:1.25">${esc(t)}</span></div>`).join("")}</div></section>
     <section class="card o7"><span class="k">Cursos</span>
      ${[["#claude","Curso de Claude",cs.p,"#F59E0B",`${cs.done}/${cs.total}`],["#prog","Programação · BLESSAINT",ps.p,"#A78BFA",`${ps.done}/${ps.total}`],["#fac","Faculdade Estácio",fs.p,"#F472B6",fs.discs?`${fs.tdone}/${fs.tarefas} tarefas`:"cadastrar"]].concat(EXT_CURSOS.filter(c => extStats(c).d > 0 && extStats(c).p < 1).map(c => { const s = extStats(c); return [`#curso-${c.id}`, c.nome, s.p, c.cor[1], `${s.d}/${s.t}`]; })).map(([h,t,p,c,s]) => `<a href="${h}" style="display:block;text-decoration:none;color:var(--text);padding:11px 0;border-top:1px solid var(--line)"><div class="row between"><span style="font-weight:600;font-size:.92rem">${t}</span><span class="tiny mono" style="color:${c}">${s}</span></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${Math.round(p*100)}%;background:${c}"></i></div></a>`).join("")}<a class="btn sm" href="#cursos" style="width:100%;margin-top:8px">Ver todos os cursos</a></section>
@@ -429,7 +465,7 @@ function viewAula(id){
    <div class="divider"><h2>Fechamento</h2></div>
    <section><span class="eyebrow">Mapa mental</span><div class="mind" style="margin-top:10px"><div class="center">${esc(x.titulo)}</div>${x.mapa.map(m => `<div class="n">${esc(m)}</div>`).join("")}</div></section>
    <section id="quiz"><span class="eyebrow">Quiz · marque um X</span><div style="margin-top:10px" id="quizbox">${quizHTML(x)}</div></section>
-   ${x.missao ? `<section><span class="eyebrow">Missão prática no site</span><div style="margin-top:10px">${x.missao.map((m,k) => { const on = (S.missoes[x.id]||[])[k]; return `<button class="check" role="checkbox" aria-checked="${!!on}" data-mis="${x.id}:${k}"><span class="box"></span><span class="t">${esc(m)}</span><span class="xp">+20 XP</span></button>`; }).join("")}</div></section>` : ""}
+   ${x.missao ? `<section><span class="eyebrow">Missão prática no site</span><div style="margin-top:10px">${x.missao.map((m,k) => { const on = (S.missoes[x.id]||[])[k]; return `<button class="check" role="checkbox" aria-checked="${!!on}" data-mis="${x.id}:${k}"><span class="box"></span><span class="t">${esc(m)}</span><span class="xp">prática</span></button>`; }).join("")}</div><p class="tiny muted">Registre a entrega revisada em Trajetória para receber XP de prática.</p></section>` : ""}
    <section class="card"><div class="row between"><b>Enviar para o Claude</b><span class="small dim">cole na conversa do Projeto</span></div><div class="row" style="margin-top:12px"><button class="btn sm" data-copy-aula="${x.id}">${ICO.copy} Copiar resultado</button><button class="btn sm ghost" data-duvida="${x.id}">${ICO.copy} Copiar pedido de dúvida</button></div></section>
    <nav class="row between">${prev ? `<a class="btn ghost" href="#aula-${prev.id}">${ICO.back} ${esc(nomeItem(prev))}</a>` : "<span></span>"}${next ? `<a class="btn" href="#aula-${next.id}">${esc(nomeItem(next))} ${ICO.arrow}</a>` : ""}</nav>
   </article>`;
@@ -474,8 +510,8 @@ function viewProg(){
    <div class="stack" style="gap:12px">${PROG_FASES.map(f => { const its = PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate), d = its.filter(a => S.prog[a[0]] && S.prog[a[0]].done).length; return `<div><div class="row between"><b>${f.nome}</b><span class="small dim num">${d}/${its.length}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(d/its.length*100)}%"></i></div></div>`; }).join("")}</div>
   </div></section>
   ${arenaMini("prog")}
-  ${vazio ? `<section class="card row between"><div style="min-width:0;flex:1"><b>Já começou este curso?</b><p class="small muted" style="margin:4px 0 0">Pelo diário de bordo, as aulas 0 a 5 estão feitas (quizzes 5/5, 4/8, 6/7, 5/7, 4/7 e 4/8).</p></div><button class="btn gold" data-import-hist="1">Importar histórico</button></section>` : ""}
-  <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:20px;height:20px;vertical-align:-4px;color:var(--red)'")} Bugs a corrigir</h3><span class="small dim mono">seus pontos fracos · +50 xp cada</span></div>
+  ${vazio ? `<section class="card row between"><div style="min-width:0;flex:1"><span class="tag gold">Histórico disponível</span><h3 style="margin-top:10px">Aulas anteriores ainda não importadas</h3><p class="small muted" style="margin:6px 0 0">Seu diário registra as aulas 0 a 5 concluídas (quizzes 5/5, 4/8, 6/7, 5/7, 4/7 e 4/8). Elas ainda não entram no progresso desta plataforma. A importação só acontece quando você escolher.</p></div><button class="btn gold" data-import-hist="1">Importar histórico</button></section>` : ""}
+  <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:20px;height:20px;vertical-align:-4px;color:var(--red)'")} Bugs a corrigir</h3><span class="small dim mono">seus pontos fracos · pratique e registre a avaliação na Trajetória</span></div>
    <div class="stack" style="gap:10px;margin-top:14px">${PROG_PONTOS_FRACOS.map((p,k) => { const dead = !!S.chefes[k]; return `<button class="boss ${dead?"dead":""}" data-boss="${k}" aria-pressed="${dead}"><span class="tick" aria-checked="${dead}"></span><span class="hp"><span class="t" style="font-weight:800;display:block">${esc(p)}</span><span class="bar" style="height:7px;margin-top:8px;display:block"><i style="width:${dead?0:100}%;background:linear-gradient(90deg,#F87171,#F472B6)"></i></span></span><span class="tiny dim mono">${dead?"corrigido":"aberto"}</span></button>`; }).join("")}</div></section>
   ${PROG_FASES.map(f => `<section><div class="row between" style="margin:8px 0 10px"><h3>Fase ${esc(f.nome)}</h3></div><div class="list">${PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate).map(progRow).join("")}</div></section>`).join("")}
   <p class="small dim">Datas previstas do cronograma original. Depois da Aula 50 vem a Fase 2: JSON, React, back-end e banco de dados.</p>
@@ -487,7 +523,7 @@ function abrirSheet(n){
   fecharModal(); const s = document.createElement("div"); s.className = "sheet";
   s.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true"><div class="row between"><span class="tag pg">Aula ${a[0]} · previsto ${fmtData(a[1])}</span><button class="btn sm ghost" data-close aria-label="Fechar">Fechar</button></div>
    <h2 style="font-size:1.4rem">${esc(a[2])}</h2>
-   <button class="check" role="checkbox" aria-checked="${!!r.done}" data-prog="${a[0]}"><span class="box"></span><span class="t">Aula concluída</span><span class="xp">+100 XP</span></button>
+   <button class="check" role="checkbox" aria-checked="${!!r.done}" data-prog="${a[0]}"><span class="box"></span><span class="t">Aula concluída</span><span class="xp">+20 XP</span></button>
    <div><b class="small">Quantas questões tinha o quiz?</b><div class="chips" style="margin-top:8px">${[5,6,7,8,10,12,15].map(v => `<button class="chip" aria-pressed="${r.tot===v}" data-ptot="${a[0]}:${v}">${v}</button>`).join("")}</div></div>
    ${r.tot ? `<div><b class="small">Quantas você acertou?</b><div class="chips" style="margin-top:8px">${[...Array(r.tot+1).keys()].map(v => `<button class="chip" aria-pressed="${r.ok===v}" data-pok="${a[0]}:${v}">${v}</button>`).join("")}</div></div>` : ""}
    <div class="row"><button class="btn gold" data-copy-prog="${a[0]}">${ICO.copy} Pedir esta aula ao Claude</button></div>
@@ -525,9 +561,10 @@ function discCard(d){
   const val = k => typeof (d.notas||{})[k] === "number" ? String(d.notas[k]).replace(".",",") : "";
   return `<section class="disc stack" id="disc-${d.id}" style="gap:16px"><div class="row between" style="flex-wrap:nowrap"><div style="min-width:0"><h3 style="font-size:1.15rem">${esc(d.nome)}</h3><div class="row" style="gap:6px;margin-top:6px"><span class="tag ${st[0]}">${st[1]}</span>${portalDisc(d.nome) ? `<span class="tag fc">portal ${portalDisc(d.nome).progresso||0}%${portalDisc(d.nome).prova ? " · " + esc(portalDisc(d.nome).prova) : ""}</span>` : ""}</div></div>${ring(m===null?0:m/10, 70, 8, m!==null&&m>=S.fac.min?"#3BDB8C":"#FF5E6E", m===null?"–":f1(m))}</div>
    <div class="grades">${[["av1","AV1"],["av2","AV2"],["av3","AV3 / AVS"]].map(([k,l]) => `<label class="field">${l}<input inputmode="decimal" data-nota="${d.id}:${k}" value="${val(k)}" placeholder="0 a 10"></label>`).join("")}<label class="field">Frequência %<input inputmode="numeric" data-freq="${d.id}" value="${d.freq ?? ""}" placeholder="75"></label></div>
+   <label class="small"><input type="checkbox" data-fac-approved="${esc(d.id)}" ${d.aprovada ? "checked" : ""}> Disciplina aprovada · resultado final confirmado</label><p class="tiny muted">Confirme após o resultado final. A aprovação rende 200 XP quando a média também atinge o mínimo.</p>
    <div class="grid2"><div><b class="small">Assuntos para estudar</b><div style="margin-top:8px">${(d.topicos||[]).map((t,k) => `<button class="check" role="checkbox" aria-checked="${!!t.ok}" data-top="${d.id}:${k}"><span class="box"></span><span class="t">${esc(t.t)}</span><span class="xp">+10</span></button>`).join("") || `<p class="small dim">Nenhum assunto ainda.</p>`}</div>
      <form class="row" data-add-top="${d.id}" style="margin-top:10px;flex-wrap:nowrap"><input class="input" placeholder="Ex.: estruturas de repetição" aria-label="Novo assunto"><button class="btn sm" type="submit" aria-label="Adicionar assunto">${ICO.plus}</button></form></div>
-    <div><b class="small">Provas e entregas</b><div style="margin-top:8px">${(d.entregas||[]).map((t,k) => `<button class="check" role="checkbox" aria-checked="${!!t.ok}" data-ent="${d.id}:${k}"><span class="box"></span><span class="t">${esc(t.t)}${t.data ? ` · ${fmtData(t.data)}` : ""}</span><span class="xp">+30</span></button>`).join("") || `<p class="small dim">Nada marcado.</p>`}</div>
+    <div><b class="small">Provas e entregas</b><div style="margin-top:8px">${(d.entregas||[]).map((t,k) => `<button class="check" role="checkbox" aria-checked="${!!t.ok}" data-ent="${d.id}:${k}"><span class="box"></span><span class="t">${esc(t.t)}${t.data ? ` · ${fmtData(t.data)}` : ""}</span><span class="xp">+50</span></button>`).join("") || `<p class="small dim">Nada marcado.</p>`}</div>
      <form class="row" data-add-ent="${d.id}" style="margin-top:10px"><input class="input" style="flex:1;min-width:120px" placeholder="Ex.: AV1" aria-label="Nova prova ou entrega"><input class="input" type="date" style="width:auto" aria-label="Data"><button class="btn sm" type="submit" aria-label="Adicionar prova">${ICO.plus}</button></form></div></div>
    <div class="row"><button class="btn sm" data-copy-disc="${d.id}">${ICO.copy} Pedir ajuda nesta disciplina</button><button class="btn sm ghost" data-del-disc="${d.id}">Remover</button></div></section>`;
 }
@@ -789,7 +826,7 @@ function viewCurso(id){
   <div class="chero">
    <section class="card" style="${capa(c)}">${platTag(c.plat)}<h1 style="margin:12px 0 6px">${esc(c.nome)}</h1><p class="muted">${esc(c.sub)} · ${c.mods.length} módulos, ${s.t} aulas.</p>
     <div class="row" style="margin-top:14px">${px ? `<a class="btn gold" href="${esc(pxURL)}" target="_blank" rel="noopener">▶ Continuar: ${esc(px.t)}</a>` : `<span class="tag ok">curso concluído</span>`}<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir na ${esc(c.plat)} ↗</a></div></section>
-   <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos</div><div class="tiny dim" style="margin-top:6px">${!cursoCar(c) ? `<span class="xtag hb">hobby</span> aula +${XP_EXT_AULA} · módulo +${XP_EXT_MOD} em XP de hobby, não muda o cargo` : `<span class="xtag car">carreira</span> ${c.car.length} de ${c.mods.length} módulos sobem o cargo (+${XP_EXT_AULA} por aula, +${XP_EXT_MOD} por módulo). Os outros contam como hobby.`}</div></div></section>
+   <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos</div><div class="tiny dim" style="margin-top:6px">${!cursoCar(c) ? `<span class="xtag hb">hobby</span> aula +${XP_EXT_AULA} · módulo +${XP_EXT_MOD} em XP de hobby, não muda o cargo` : `<span class="xtag car">carreira</span> ${c.car.length} de ${c.mods.length} módulos sobem o cargo (+20 por aula; projetos revisados em Trajetória). Os outros contam como hobby.`}</div></div></section>
   </div>
   ${arenaMini(c.id === "ls1" || c.id === "ls3" ? "violao" : c.id)}
   <div>${mods}</div>
@@ -855,7 +892,7 @@ function abrirLivro(id){
    <div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">${capaLivro(l, true)}<div style="min-width:0;flex:1"><h2>${esc(l.titulo)}</h2><div class="small muted">${esc(l.autor||"")}${l.tema ? " · " + esc(l.tema) : ""}</div>${l.origem ? `<div class="tiny dim" style="margin-top:4px">${esc(l.origem)}</div>` : ""}
     <div class="stars5" style="margin-top:10px">${[1,2,3,4,5].map(n => `<button data-bnota="${esc(l.id)}:${n}" aria-label="${n} estrelas" class="${n<=l.nota?"on":""}">★</button>`).join("")}</div></div></div>
    <div class="seg">${Object.entries(BST).map(([k,t]) => `<button data-bst="${esc(l.id)}:${k}" aria-pressed="${l.status===k}">${t}</button>`).join("")}<button data-bfav="${esc(l.id)}" aria-pressed="${!!l.fav}">★ favorito</button><button data-barea="${esc(l.id)}" aria-pressed="${!!l.area}" title="Livro de tecnologia, programação, design ou negócios do estúdio">${l.area ? "da área · conta na carreira" : "fora da área · hobby"}</button></div>
-   <div class="row" style="gap:8px"><label class="tiny dim">Página <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pag||""}" data-bpag="${esc(l.id)}"></label><label class="tiny dim">de <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pags||""}" data-bpags="${esc(l.id)}"></label>${l.status==="lido" ? `<span class="tiny okc">terminado ${l.fim ? fmtData(l.fim) : ""} · +${XP_LIVRO} xp ${l.area ? "de carreira" : "de hobby"}</span>` : ""}</div>
+   <div class="row" style="gap:8px"><label class="tiny dim">Página <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pag||""}" data-bpag="${esc(l.id)}"></label><label class="tiny dim">de <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pags||""}" data-bpags="${esc(l.id)}"></label>${l.status==="lido" ? `<span class="tiny okc">terminado ${l.fim ? fmtData(l.fim) : ""} · ${l.area ? "registre uma aplicação prática na Trajetória" : `+${XP_LIVRO} XP de hobby`}</span>` : ""}</div>
    <div><span class="k">Frases que marcaram</span>${(l.frases||[]).map((f,i) => `<div class="note row between" style="flex-wrap:nowrap"><span>“${esc(f)}”</span><button class="btn sm ghost" data-bfdel="${esc(l.id)}:${i}" aria-label="Apagar frase">✕</button></div>`).join("")}
     <form class="row" data-bfrase="${esc(l.id)}" style="gap:8px;margin-top:8px"><input class="input" placeholder="Escreva uma frase do livro com as suas palavras" maxlength="280" style="flex:1;min-width:0"><button class="btn sm">Salvar</button></form></div>
    <div><span class="k">Minhas anotações</span><textarea class="input" rows="4" data-bnotas="${esc(l.id)}" placeholder="O que eu aprendi e o que vou aplicar" style="width:100%;margin-top:8px">${esc(l.notas||"")}</textarea></div>
@@ -929,11 +966,11 @@ function dMontar(k){
 }
 let DQ = null;
 function viewArena(){
-  const dia = "dia:" + hoje(), rd = dRec(dia), xc = xpDesafios(true), xh = xpDesafios(false);
+  const dia = "dia:" + hoje(), rd = dRec(dia), xc = Object.entries((S.xpLedger||{}).earned||{}).filter(([k])=>k.startsWith("arena:")).reduce((n,[k,v])=>n+v,0), xh = xpDesafios(false);
   return `<div class="stack fade">
   <div><span class="k">Arena · exercícios de todos os cursos</span><h1 style="margin-top:6px">Desafios</h1><p class="muted" style="margin-top:4px">Fases com estrelas, combo e um chefão no fim de cada curso. Exercícios criados a partir do tema de cada módulo.</p></div>
   <div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">estrelas</div><div class="v num" style="color:var(--cyan)">${DKEYS.reduce((a,k) => a + dStats(k).st, 0)}<small>/${DKEYS.reduce((a,k) => a + dStats(k).max, 0)}</small></div></div><div class="stat"><div class="k">chefões</div><div class="v num">${DKEYS.filter(k => dStats(k).boss).length}<small>/${DKEYS.length}</small></div></div><div class="stat"><div class="k">xp carreira</div><div class="v num">${xc}</div></div><div class="stat"><div class="k">xp hobby</div><div class="v num" style="color:var(--amber)">${xh}</div></div></div>
-  <a class="card dday" href="#desafio-dia"><span class="ico2" style="color:var(--amber)">${ICO.bolt}</span><span style="flex:1;min-width:0"><b>Desafio do dia</b><span class="tiny dim" style="display:block">${rd && rd.done ? `feito hoje · ${rd.best}/${rd.total} · volte amanhã para um novo` : "6 perguntas sorteadas de Claude, Programação, Faculdade e Design · +40 a +80 xp"}</span></span>${rd && rd.done ? starRow(dStars(rd), 16) : `<span class="btn sm gold">Jogar</span>`}</a>
+  <a class="card dday" href="#desafio-dia"><span class="ico2" style="color:var(--amber)">${ICO.bolt}</span><span style="flex:1;min-width:0"><b>Desafio do dia</b><span class="tiny dim" style="display:block">${rd && rd.done ? `feito hoje · ${rd.best}/${rd.total} · volte amanhã para um novo` : "6 perguntas sorteadas de Claude, Programação, Faculdade e Design · até 30 XP"}</span></span>${rd && rd.done ? starRow(dStars(rd), 16) : `<span class="btn sm gold">Jogar</span>`}</a>
   ${DKEYS.map(arenaCurso).join("")}
   </div>`;
 }
@@ -960,7 +997,7 @@ function desafioHTML(k){
   if (!DQ || DQ.k !== k){
     const m = dMontar(k);
     return `<div class="quiz" style="text-align:center"><span class="xtag ${car?"car":"hb"}">${car?"xp de carreira":"xp de hobby"}</span><h2 style="margin:10px 0 6px">${esc(m.titulo)}</h2><p class="muted small">${esc(m.sub)}</p>
-     <p class="small" style="margin:10px 0 14px">${r && r.done ? `Melhor: <b class="num" style="color:var(--cyan)">${r.best}/${r.total}</b> ${starRow(dStars(r),14)}` : `${m.itens.length} perguntas · combo de 5 = +10 xp`}</p>
+     <p class="small" style="margin:10px 0 14px">${r && r.done ? `Melhor: <b class="num" style="color:var(--cyan)">${r.best}/${r.total}</b> ${starRow(dStars(r),14)}` : `${m.itens.length} perguntas · ${car ? "até 30 XP; vale a melhor nota" : "combo de 5 = +10 XP"}`}</p>
      ${k.startsWith("dia:") && r && r.done ? `<p class="small muted">Você já fez o de hoje. Pode jogar de novo para treinar; vale a melhor nota.</p>` : ""}
      <button class="btn gold" data-dstart="${k}">${r && r.done ? "Jogar de novo" : "Começar"}</button></div>`;
   }
@@ -1063,37 +1100,53 @@ document.addEventListener("click", e => { const t = e.target.closest("[data-ttab
 
 /* ===================== TRAJETÓRIA (patentes e histórico) ===================== */
 function xpPartes(){
-  let claude = 0, prog = 0, fac = 0;
-  CURSO_CLAUDE.forEach(it => { const r = S.claude[it.id]; if (r && r.done){ const b = it.tipo === "prova" ? [300,200] : it.tipo === "rev" ? [150,100] : [100,50]; claude += b[0] + Math.round(b[1]*pct(r)); } });
-  PROG_AULAS.forEach(([n]) => { const r = S.prog[n]; if (r && r.done){ prog += 100; if (r.tot) prog += Math.round(50*r.ok/r.tot); } });
-  Object.values(S.chefes).forEach(v => { if (v) prog += 50; });
-  S.fac.discs.forEach(d => { const m = media(d); if (m !== null && m >= S.fac.min) fac += 200; (d.topicos||[]).forEach(t => { if (t.ok) fac += 10; }); (d.entregas||[]).forEach(t => { if (t.ok) fac += 30; }); });
-  let missoes = 0; Object.values(S.missoes).forEach(a => (a||[]).forEach(v => { if (v) missoes += 20; }));
-  return [["Curso de Claude", claude, "#A78BFA"], ["Programação", prog + missoes, "#22D3EE"], ["Faculdade", fac, "#F472B6"], ["Design e cursos da área", xpExtra(), "#34D399"], ["Arena de desafios", xpDesafios(true), "#F59E0B"], ["Bônus de constância", Object.keys(S.bonus).length * 50, "#7C5CFF"]];
+  ensureXP(); const groups={claude:0,prog:0,ext:0,fac:0,arena:0,daily:0,weekly:0,practice:0};
+  Object.entries(S.xpLedger.earned).forEach(([k,v])=>{const g=k.split(":")[0];if(g in groups)groups[g]+=v;});
+  return [["Saldo anterior preservado",S.xpLedger.legacy,"#A78BFA"],["Curso de Claude",groups.claude,"#A78BFA"],["Programação",groups.prog,"#22D3EE"],["Design e cursos da área",groups.ext,"#34D399"],["Faculdade",groups.fac,"#F472B6"],["Quizzes da arena",groups.arena,"#F59E0B"],["Revisões e constância",groups.daily+groups.weekly,"#7C5CFF"],["Prática e projetos",groups.practice,"#22D3EE"]];
 }
+
 /* data em que cada patente foi alcançada, reconstruída do diário */
-function datasPatentes(){
-  const total = xpTotal(), log = S.log.slice().reverse(); let soma = 0; log.forEach(l => soma += (l.xp||0));
-  let cum = total - soma; const out = {}; S.ranks = S.ranks || {};
-  RANKS.forEach((r,i) => { if (S.ranks[i]) out[i] = S.ranks[i]; else if (r[0] <= cum) out[i] = "antes"; });
-  log.forEach(l => { cum += (l.xp||0); RANKS.forEach((r,i) => { if (!(i in out) && cum >= r[0]) out[i] = l.d; }); });
-  return out;
+function datasPatentes(){ensureXP(); return Object.assign({}, S.xpLedger.rankDates);}
+function registrarRank(){ensureXP();const lv=nivel();S.xpLedger.rankDates=S.xpLedger.rankDates||{};RANKS.forEach((r,i)=>{if(i<lv.n && !S.xpLedger.rankDates[i])S.xpLedger.rankDates[i]=hoje();});}
+
+function practiceHTML(){
+ const rows=EvoProgress.evidence(S.practice||[]);
+ return `<section class="card"><div class="row between"><h2>Prática e projetos</h2><span class="tag">${rows.filter(e=>e.type==="project").length} projetos revisados</span></div>
+ <p class="small muted" style="margin:10px 0">Registre uma entrega após revisão com seu professor, mentor ou responsável. Esta é uma avaliação manual registrada por você. Exercício: 50 XP · projeto: 150 XP. Cada entrega pontua uma vez.</p>
+ <details><summary class="btn">Registrar avaliação</summary><form id="practice-form" class="stack" style="margin-top:14px">
+ <div class="grid2"><label class="field">Tipo<select class="input" name="type"><option value="exercise">Exercício prático</option><option value="project">Projeto de módulo</option></select></label><label class="field">Nome da entrega<input class="input" name="title" required maxlength="120"></label></div>
+ <label class="field">Link da entrega<input class="input" name="url" type="url" placeholder="https://..." required></label>
+ <label class="field">Quem avaliou<input class="input" name="reviewer" required maxlength="100"></label>
+ <label class="field">Observações da avaliação<textarea class="input" name="notes" minlength="20" maxlength="2000" required placeholder="O que foi testado, o que você explicou e quais correções foram feitas?"></textarea></label>
+ <label class="small"><input type="checkbox" name="functional" required> A entrega funciona ou atende ao objetivo do exercício.</label>
+ <label class="small"><input type="checkbox" name="explained" required> Consegui explicar as decisões e o que aprendi.</label>
+ <label class="small"><input type="checkbox" name="reviewed" required> A revisão foi realizada e as correções necessárias foram conferidas.</label>
+ <fieldset style="border:1px solid var(--line2);border-radius:10px;padding:12px"><legend class="small">Marcos avaliados · apenas para projetos</legend><div class="stack" style="gap:8px"><label class="small"><input type="checkbox" name="integrator"> Desafio integrador: aplicou conhecimentos de mais de uma área.</label><label class="small"><input type="checkbox" name="autonomy"> Autonomia: planejou, executou e resolveu problemas sem solução pronta.</label><label class="small"><input type="checkbox" name="documentation"> Documentação: instalação, uso e decisões foram documentados.</label><label class="small"><input type="checkbox" name="finalAssessment"> Avaliação final: revisão abrangente da trajetória concluída.</label></div></fieldset>
+ <div role="alert" class="err"></div><button class="btn gold" type="submit">Salvar avaliação</button></form></details>
+ ${rows.map(e=>`<div style="border-top:1px solid var(--line);padding-top:12px;margin-top:12px"><b>${esc(e.title)}</b><span class="tag" style="margin-left:8px">${e.type==="project"?"projeto":"exercício"}</span><p class="tiny muted">Avaliação registrada: ${esc(e.reviewer)}</p><a href="${esc(EvoProgress.safeURL(e.url))}" target="_blank" rel="noopener noreferrer">Ver entrega ↗</a><p class="small muted">${esc(e.notes)}</p></div>`).join("")}
+ <details style="margin-top:16px"><summary class="small">Regras de XP e promoção</summary><p class="small muted">Aula: 20 XP · quiz: até 30 · revisão: até 10 por conteúdo por semana · tópico da faculdade: 10 · entrega: 50 · disciplina aprovada: 200 · missões diárias completas: 10. Os bônus de módulo são substituídos por projetos avaliados. Repetir conclusões não soma XP novamente. O saldo anterior e o histórico foram preservados. As patentes são níveis de aprendizagem, não certificações profissionais.</p><p class="small muted">Promoções: Júnior I exige 1 projeto; Júnior II, 2; Pleno I, 3 e desafio integrador; Pleno II, 4; Sênior, 5 e autonomia; Especialista Técnico, 6 e documentação; Especialista Sênior, 8 e avaliação final. Os requisitos anteriores também precisam estar cumpridos.</p></details></section>`;
 }
-function registrarRank(){ const d = datasPatentes(), tot = xpTotal(); S.ranks = S.ranks || {}; RANKS.forEach((r,i) => { if (tot >= r[0] && !S.ranks[i]) S.ranks[i] = d[i] && d[i] !== "antes" ? d[i] : (d[i] || hoje()); }); }
+window.evoRegisterPractice=function(entry){
+ if((!SESS && !LOCAL) || !EvoProgress.validEvidence(entry))return "Não foi possível validar a avaliação.";
+ if((S.practice||[]).some(e=>EvoProgress.safeURL(e.url)===EvoProgress.safeURL(entry.url)))return "Essa entrega já está registrada. Use um link específico para cada entrega diferente.";
+ act(()=>{S.practice=S.practice||[];S.practice.push(entry);},"practice",`Avaliação prática: ${entry.title}`);
+ render(true);toast("Avaliação registrada.");return null;
+};
+
 function viewTrajetoria(){
   const lv = nivel(), tot = lv.xp, dp = datasPatentes(), partes = xpPartes(), maxP = Math.max(1, ...partes.map(p => p[1]));
   const ativos = diasAtivos(), dias14 = [...Array(14)].map((_,i) => { const d = new Date(); d.setDate(d.getDate() - (13-i)); const k = iso(d); return [k, ativos[k]||0]; });
   const mx = Math.max(10, ...dias14.map(d => d[1])), xp7 = dias14.slice(7).reduce((a,d) => a + d[1], 0), media7 = xp7/7;
-  const falta = lv.prox ? lv.prox - tot : 0, estim = lv.prox && media7 > 0 ? Math.ceil(falta/media7) : null;
+  const falta = lv.prox ? Math.max(0,lv.prox - tot) : 0, estim = lv.prox && falta > 0 && media7 > 0 ? Math.ceil(falta/media7) : null;
   const fmt = k => k === "antes" ? "antes do diário" : fmtData(k);
   const medalhas_ = medalhas(), pres = presentesAtuais();
   const marcos = S.log.filter(l => (l.xp||0) >= 100).slice(0, 6);
   return `<div class="stack fade">
   <section class="course-hero"><div class="hero-grid"><div class="row" style="gap:20px;flex-wrap:nowrap">${badge(lv, 84)}<div style="min-width:0"><span class="eyebrow">trajetória · lvl ${lv.n} de ${RANKS.length}</span><h1 style="font-size:2rem">${esc(lv.nome)}</h1><p class="muted small" style="margin:4px 0 0">${CARREIRA[carreiraIdx(lv.n)]} · <span class="mono">${tot} xp</span> de carreira</p></div></div>
    <div><div class="bar"><i style="width:${Math.round(lv.p*100)}%"></i></div><p class="small muted" style="margin:8px 0 0">${lv.prox ? `Faltam <b class="mono" style="color:var(--text)">${falta} xp</b> para ${esc(lv.proxNome)}${estim ? ` · no seu ritmo dos últimos 7 dias (${Math.round(media7)} xp/dia), cerca de ${estim} ${estim === 1 ? "dia" : "dias"}` : ""}.` : "Topo da carreira."}</p></div></div></section>
-  <div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">xp de carreira</div><div class="v num">${tot}</div></div><div class="stat"><div class="k">xp de hobby</div><div class="v num" style="color:var(--amber)">${xpHobby()}</div></div><div class="stat"><div class="k">últimos 7 dias</div><div class="v num">${xp7}<small> xp</small></div></div><div class="stat"><div class="k">sequência</div><div class="v num">${streak()}<small> dias</small></div></div></div>
-  <section class="card"><span class="k">Escada de patentes</span><div class="ladder" style="margin-top:10px">${RANKS.map((r,i) => { const ok = tot >= r[0], cur = lv.n === i+1;
-    return `<div class="rg ${ok?"ok":""} ${cur?"cur":""}"><span class="dot">${ok ? ICO.check : (i+1)}</span><span style="flex:1;min-width:0"><b>${esc(r[1])}</b><span class="tiny dim" style="display:block">${CARREIRA[carreiraIdx(i+1)]} · ${r[0]} xp</span></span><span class="tiny mono ${cur?"vio":"dim"}">${cur ? "você está aqui" : ok ? fmt(dp[i]||"antes") : `faltam ${r[0]-tot} xp`}</span></div>`; }).join("")}</div></section>
+  <p class="small" style="color:var(--amber)">${esc(pendingPromotion(lv))}</p>${practiceHTML()}<div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">xp de carreira</div><div class="v num">${tot}</div></div><div class="stat"><div class="k">xp de hobby</div><div class="v num" style="color:var(--amber)">${xpHobby()}</div></div><div class="stat"><div class="k">últimos 7 dias</div><div class="v num">${xp7}<small> xp</small></div></div><div class="stat"><div class="k">sequência</div><div class="v num">${streak()}<small> dias</small></div></div></div>
+  <section class="card"><span class="k">Escada de patentes</span><div class="ladder" style="margin-top:10px">${RANKS.map((r,i) => { const ok = i < lv.n, cur = lv.n === i+1, pend = EvoProgress.gate(i,S.practice||[]);
+    return `<div class="rg ${ok?"ok":""} ${cur?"cur":""}"><span class="dot">${ok ? ICO.check : (i+1)}</span><span style="flex:1;min-width:0"><b>${esc(r[1])}</b><span class="tiny dim" style="display:block">${CARREIRA[carreiraIdx(i+1)]} · ${r[0]} xp</span></span><span class="tiny mono ${cur?"vio":"dim"}">${cur ? "você está aqui" : ok ? fmt(dp[i]||"antes") : tot >= r[0] ? `pendente: ${esc(pend.join(", "))}` : `faltam ${r[0]-tot} xp`}</span></div>`; }).join("")}</div></section>
   <div class="grid2"><section class="card"><span class="k">De onde vem o seu XP</span>${partes.map(([n,v,c]) => `<div class="attr"><span style="min-width:0">${esc(n)}</span><div class="bar"><i style="width:${Math.round(v/maxP*100)}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Só o que é da sua área sobe de patente. Hobbies (violão, desenho) têm XP próprio.</div></section>
   <section class="card"><span class="k">Últimos 14 dias</span><div class="hbars" style="margin-top:12px">${dias14.map(([k,v]) => `<div title="${fmtData(k)}: ${v} xp"><i style="height:${Math.max(3, Math.round(v/mx*100))}%" class="${v ? "on" : ""} ${k===hoje() ? "today" : ""}"></i></div>`).join("")}</div><div class="row between tiny dim" style="margin-top:6px"><span>${fmtData(dias14[0][0])}</span><span>hoje</span></div></section></div>
   <section class="card"><span class="k">Maiores conquistas recentes</span>${marcos.length ? marcos.map(l => `<div class="row between" style="padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap"><span class="small" style="min-width:0">${esc(l.txt || "Conquista")}</span><span class="row" style="gap:10px;flex:none"><b class="mono" style="color:var(--cyan)">+${l.xp}</b><span class="tiny dim">${fmtData(l.d)}</span></span></div>`).join("") : `<p class="small muted" style="margin-top:8px">Ainda sem grandes marcos. Conclua uma aula ou um módulo e ele aparece aqui.</p>`}</section>
@@ -1191,7 +1244,7 @@ document.addEventListener("click", e => {
     if (q.i + 1 < x.quiz.length){ q.i++; q.pick = null; q.checked = false; repintarQuiz(id); return; }
     const right = q.res.filter(Boolean).length, n = x.quiz.length, wrong = q.res.map((v,k) => v ? null : k+1).filter(Boolean);
     const prev = S.claude[id], jaFeito = !!(prev && prev.done);
-    q.gain = act(() => { const r = S.claude[id] || {}; S.claude[id] = Object.assign(r, {done:true, best:Math.max(r.best||0, right), last:right, total:n, wrong, at:Date.now()}); }, jaFeito ? "retry" : "claude", `${nomeItem(x)}: quiz ${right}/${n}`, e);
+    q.gain = act(() => { const r = S.claude[id] || {}; S.claude[id] = Object.assign(r, {done:true, best:Math.max(r.best||0, right), last:right, total:n, wrong, at:Date.now()}); }, jaFeito ? "retry" : "claude", `${nomeItem(x)}: quiz ${right}/${n}`, e, x.id);
     q.fim = true; repintarQuiz(id); $("#quiz").scrollIntoView({block:"start", behavior:"smooth"}); if (right/n >= .7) { confetti(); som("done"); } return; }
   if (d.mis){ const [id,k] = d.mis.split(":"); const x = CURSO_CLAUDE.find(z => z.id === id); let on;
     act(() => { const a = S.missoes[id] = (S.missoes[id] || []).slice(); a[+k] = !a[+k]; on = a[+k]; }, "claude", null, e);
@@ -1247,6 +1300,7 @@ document.addEventListener("submit", async e => {
 });
 document.addEventListener("change", e => {
   const t = e.target, d = t.dataset;
+  if (d.facApproved){const disc=S.fac.discs.find(x=>x.id===d.facApproved);if(!disc)return;act(()=>{disc.aprovada=t.checked;},"fac",`Faculdade · resultado final de ${disc.nome}`);render(true);return;}
   if (d.nota){ const [id,k] = d.nota.split(":"); const disc = S.fac.discs.find(x => x.id === id); const raw = t.value.trim().replace(",",".");
     if (raw !== ""){ const v = parseFloat(raw); if (isNaN(v) || v < 0 || v > 10){ t.value = ""; toast("A nota vai de 0 a 10."); return; } }
     act(() => { disc.notas = disc.notas || {}; if (raw === "") delete disc.notas[k]; else disc.notas[k] = Math.round(parseFloat(raw)*10)/10; }, "fac", raw ? `Faculdade · ${k.toUpperCase()} de ${disc.nome}: ${raw.replace(".",",")}` : null); render(true); return; }
@@ -1268,7 +1322,7 @@ function telaLogin(cofre){
   $("#app").innerHTML = `<div class="login"><canvas id="stars"></canvas><form class="login-box" id="login-form" autocomplete="on">
    ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Evolution <span class="gtext">Lab</span></h1><div class="eyebrow" style="margin-top:6px">conhecimento em blocos</div><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
    <input type="text" name="username" value="${esc(cofre && cofre.user || HOST)}" autocomplete="username" hidden>
-   <label class="field">Senha<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
+   <div class="field"><label for="pw">Senha</label><div class="password-row"><input type="password" id="pw" autocomplete="current-password" required autofocus><button class="btn sm" type="button" data-toggle-password aria-controls="pw" aria-pressed="false">Mostrar senha</button></div></div>
    <label class="row small" style="gap:10px;cursor:pointer"><input type="checkbox" id="lembrar" checked style="width:20px;height:20px;accent-color:#22D3EE"> Manter conectado neste aparelho</label>
    <div class="err" id="lerr" role="alert"></div>
    <button class="btn gold" type="submit" id="lbtn">${ICO.lock} Entrar</button>
@@ -1276,6 +1330,15 @@ function telaLogin(cofre){
   </form></div>`;
   starfield();
 }
+document.addEventListener("click", e => {
+  const toggle = e.target.closest("[data-toggle-password]");
+  if (!toggle) return;
+  const input = $("#pw"); if (!input) return;
+  const visible = input.type === "password";
+  input.type = visible ? "text" : "password";
+  toggle.textContent = visible ? "Ocultar senha" : "Mostrar senha";
+  toggle.setAttribute("aria-pressed", String(visible));
+});
 async function doLogin(){
   const pw = $("#pw").value, er = $("#lerr"), btn = $("#lbtn"); if (!COFRE || COFRE === "offline"){ er.textContent = "Sem conexão para buscar seu cofre."; return; }
   btn.disabled = true; btn.textContent = "Abrindo o cofre…"; er.textContent = "";
@@ -1321,11 +1384,13 @@ async function doSetup(){
   }
 }
 async function entrar(fazerPull){
-  LOCAL = true; lastR = rota(); render();
-  if (fazerPull){ setSync("busy"); const ch = await pull(); if (ch) render(true); }
-  else setSync("ok");
-  if (!S.extSeed){ semearExt(); render(true); }
-  await garantirChaves(); if (await lerFeed()) render(true); if (await lerFeedCursos()) render(true);
+  LOCAL = true; lastR = rota();
+  if (fazerPull){setSync("busy");await pull();}else setSync("ok");
+  if (!S.extSeed)semearExt();
+  if(fazerPull && sync!=="ok" && !S.updatedAt){LOCAL=false;$("#app").innerHTML=`<div class="login"><div class="login-box"><h1>Progresso indisponível</h1><p class="muted">Não consegui carregar seu progresso da nuvem e não há uma cópia neste aparelho. Tente novamente antes de estudar para preservar seus dados.</p><a class="btn gold" href="./">Tentar novamente</a></div></div>`;return;}
+  const migrated=ensureXP();if(migrated){registrarRank();if(sync==="ok")persist();else lsSet("ea-state",S);}
+  render();
+  await garantirChaves(); if(await lerFeed())render(true);if(await lerFeedCursos())render(true);
 }
 
 /* ===================== início ===================== */
@@ -1341,3 +1406,4 @@ async function entrar(fazerPull){
   if (COFRE === null) telaSetup(); else telaLogin(COFRE);
 })();
 })();
+
