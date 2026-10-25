@@ -521,9 +521,12 @@ function textoFac(d){
 async function garantirChaves(){
   try {
     if (!SESS || !KEY) return;
-    let c = (COFRE && COFRE !== "offline") ? COFRE : await fetchCofre();
-    if (!c || c === "offline") return; COFRE = c;
-    if (c.pub && c.privBox) return;
+    // sempre confere a versão mais nova direto no GitHub (nunca o cache), para não gerar chave duplicada
+    let c = null;
+    try { const meta = await gh(`/repos/${HOST}/${REPO}/contents/cofre.json?t=${Date.now()}`); c = JSON.parse(td.decode(unb64(String(meta.content||"").replace(/\s/g,"")))); } catch(e){ return; }
+    if (!c || !c.box) return;
+    if (c.pub && c.privBox){ COFRE = c; lsSet("ea-cofre", c); return; }
+    COFRE = c;
     const kp = await crypto.subtle.generateKey({name:"RSA-OAEP", modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:"SHA-256"}, true, ["encrypt","decrypt"]);
     const pub = await crypto.subtle.exportKey("jwk", kp.publicKey);
     const priv = b64(await crypto.subtle.exportKey("pkcs8", kp.privateKey));
