@@ -16,7 +16,7 @@ const lsSet = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } cat
 const lsDel = k => { try { localStorage.removeItem(k); } catch(e){} };
 
 const HOST = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "arnoldsuheth";
-const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split("/").filter(Boolean)[0] || "escola-do-arnold") : "escola-do-arnold";
+const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split("/").filter(Boolean)[0] || "evolution-lab") : "evolution-lab";
 
 /* ===================== estado ===================== */
 function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}}; }
@@ -58,7 +58,7 @@ async function fetchCofre(){
 async function putCofre(cofre, token){
   let sha;
   try { const cur = await gh(`/repos/${HOST}/${REPO}/contents/cofre.json`, {}, token); sha = cur.sha; } catch(e){ if (e.status !== 404) throw e; }
-  await gh(`/repos/${HOST}/${REPO}/contents/cofre.json`, {method:"PUT", body:JSON.stringify({message:"Cofre da Escola do Arnold", content:utf8b64(JSON.stringify(cofre, null, 1)), sha})}, token);
+  await gh(`/repos/${HOST}/${REPO}/contents/cofre.json`, {method:"PUT", body:JSON.stringify({message:"Cofre da Evolution Lab", content:utf8b64(JSON.stringify(cofre, null, 1)), sha})}, token);
   lsSet("ea-cofre", cofre);
 }
 
@@ -277,10 +277,10 @@ const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
 const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
-  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Escola do Arnold</b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
+  <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution Lab</b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
    ${NAV.map(([k,t,i]) => `<a class="navi" href="#${k}" data-nav="${k}">${ICO[i]}${t}</a>`).join("")}
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
-  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${CREST_BIG.replace(/"cg"/,'"cg2"').replace("url(#cg)","url(#cg2)")}<span><b>Escola do Arnold</b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
+  <div class="main"><header class="topbar"><a class="brand" href="#hoje">${CREST_BIG.replace(/"cg"/,'"cg2"').replace("url(#cg)","url(#cg2)")}<span><b>Evolution Lab</b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
   <nav class="tabbar" aria-label="Seções">${NAV.map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
 }
@@ -388,7 +388,7 @@ function viewClaude(){
   </div></div>`;
 }
 function introModal(){ modal(`<span class="eyebrow">Curso de Claude</span><h2>Como funciona</h2><div style="text-align:left" class="small"><p>Cada aula tem explicação curta com ilustração e dica do professor. No fechamento: mapa mental, quiz de marcar X (uma pergunta por vez, com combo) e a missão prática.</p><p><b>Estrelas:</b> 1 por concluir, 2 com 70% e 3 com 90% no quiz. Vale a melhor tentativa.</p><p><b>Seu título</b> sobe a cada nível: Usuário, Usuário avançado, Agente, Construtor e, passando na prova final com 70%, Expert em Claude com certificado.</p><p>Dúvidas? Toque em "Copiar" e cole na conversa do Projeto com o Claude.</p></div><button class="btn gold" data-close>Entendi</button>`); }
-function certificado(){ const r = S.claude.pf; return `<section class="cert"><span class="eyebrow" style="color:rgba(255,255,255,.6)">A Escola do Arnold certifica que</span><h2 style="margin:12px 0;font-size:2rem">${esc(S.nome)}</h2><p>concluiu o <b>Curso de Claude: do zero ao avançado</b></p><p class="small muted" style="margin:0">Prova final ${r.best}/${r.total} · ${new Date(r.at).toLocaleDateString("pt-BR")}</p><div style="margin-top:14px">${starRow(estrelas(r), 30)}</div></section>`; }
+function certificado(){ const r = S.claude.pf; return `<section class="cert"><span class="eyebrow" style="color:rgba(255,255,255,.6)">O Evolution Lab certifica que</span><h2 style="margin:12px 0;font-size:2rem">${esc(S.nome)}</h2><p>concluiu o <b>Curso de Claude: do zero ao avançado</b></p><p class="small muted" style="margin:0">Prova final ${r.best}/${r.total} · ${new Date(r.at).toLocaleDateString("pt-BR")}</p><div style="margin-top:14px">${starRow(estrelas(r), 30)}</div></section>`; }
 
 /* ===================== AULA ===================== */
 const QZ = {};
@@ -435,7 +435,7 @@ function quizHTML(x){
 function repintarQuiz(id){ const x = CURSO_CLAUDE.find(z => z.id === id); const b = $("#quizbox"); if (b) b.innerHTML = quizHTML(x); }
 function textoAula(id){
   const x = CURSO_CLAUDE.find(z => z.id === id), r = S.claude[id], m = S.missoes[id] || [];
-  let t = `Escola do Arnold · Curso de Claude\n${nomeItem(x)}: ${x.titulo}\n`;
+  let t = `Evolution Lab · Curso de Claude\n${nomeItem(x)}: ${x.titulo}\n`;
   if (r && r.total){ t += `Quiz: última ${r.last}/${r.total} · melhor ${r.best}/${r.total}\n`; if (r.wrong && r.wrong.length) t += `Errei: ${r.wrong.map(n => `pergunta ${n} ("${x.quiz[n-1][0]}")`).join("; ")}\n`; } else t += "Quiz ainda não feito.\n";
   if (x.missao) t += `Missão: ${m.filter(Boolean).length}/${x.missao.length}${x.missao.map((mm,k) => m[k] ? "" : `\n- pendente: ${mm}`).join("")}\n`;
   return t + "Me explica o que eu errei e me dá um desafio extra de múltipla escolha.";
@@ -510,8 +510,8 @@ function discCard(d){
 }
 function textoFac(d){
   const linha = x => { const m = media(x); const n = x.notas||{}; return `- ${x.nome}: AV1 ${n.av1 ?? "–"}, AV2 ${n.av2 ?? "–"}, AV3 ${n.av3 ?? "–"}, média ${m===null?"–":f1(m)}, frequência ${x.freq ?? "–"}%`; };
-  if (d) return `Escola do Arnold · Faculdade Estácio (Ciência da Computação)\n${linha(d)}\nAssuntos pendentes: ${(d.topicos||[]).filter(t=>!t.ok).map(t=>t.t).join(", ") || "nenhum"}\nPróximas provas: ${(d.entregas||[]).filter(t=>!t.ok).map(t=>t.t+(t.data?" ("+fmtData(t.data)+")":"")).join(", ") || "nenhuma"}\nMe ajuda a estudar essa disciplina com explicação curta e exercícios de múltipla escolha.`;
-  return `Escola do Arnold · Faculdade Estácio (Ciência da Computação)\nMinhas disciplinas:\n${S.fac.discs.map(linha).join("\n") || "(nenhuma cadastrada)"}\nPróximas provas: ${S.fac.discs.flatMap(x => (x.entregas||[]).filter(e=>!e.ok).map(e => e.t+" de "+x.nome+(e.data?" em "+fmtData(e.data):""))).join("; ") || "nenhuma"}\nMonte um plano de estudo para esta semana encaixado na minha rotina (seg a qui, 20h à meia-noite; sábado e domingo leve; sexta descanso).`;
+  if (d) return `Evolution Lab · Faculdade Estácio (Ciência da Computação)\n${linha(d)}\nAssuntos pendentes: ${(d.topicos||[]).filter(t=>!t.ok).map(t=>t.t).join(", ") || "nenhum"}\nPróximas provas: ${(d.entregas||[]).filter(t=>!t.ok).map(t=>t.t+(t.data?" ("+fmtData(t.data)+")":"")).join(", ") || "nenhuma"}\nMe ajuda a estudar essa disciplina com explicação curta e exercícios de múltipla escolha.`;
+  return `Evolution Lab · Faculdade Estácio (Ciência da Computação)\nMinhas disciplinas:\n${S.fac.discs.map(linha).join("\n") || "(nenhuma cadastrada)"}\nPróximas provas: ${S.fac.discs.flatMap(x => (x.entregas||[]).filter(e=>!e.ok).map(e => e.t+" de "+x.nome+(e.data?" em "+fmtData(e.data):""))).join("; ") || "nenhuma"}\nMonte um plano de estudo para esta semana encaixado na minha rotina (seg a qui, 20h à meia-noite; sábado e domingo leve; sexta descanso).`;
 }
 
 
@@ -619,7 +619,7 @@ function ajustesHTML(){
    <details><summary style="cursor:pointer;font-weight:800">Cópia de segurança</summary><div class="stack" style="gap:10px;margin-top:12px"><button class="btn sm" data-export="1">${ICO.copy} Copiar meu progresso</button><textarea class="input" id="imp" placeholder="Cole aqui um progresso copiado (também aceita o da versão anterior)" style="min-height:90px"></textarea><div class="row"><button class="btn sm" data-import="1">Importar</button><span class="err" id="imp-err"></span></div></div></details>
    <div class="row"><button class="btn ghost" data-sair="1">${ICO.out} Sair deste aparelho</button></div></section>`;
 }
-function textoBoletim(){ const lv = nivel(), cs = claudeStats(), ps = progStats(), fs = facStats(); return `Escola do Arnold · Boletim de ${S.nome} (${new Date().toLocaleDateString("pt-BR")})\nNível ${lv.n} · ${lv.nome} · ${lv.xp} XP · nota geral ${f1(notaGeral())} · ${streak()} dias seguidos\nCurso de Claude: ${cs.done}/${cs.total}, nota ${f1(cs.nota)}, título ${claudeTitulo()}\nProgramação: ${ps.done}/${ps.total} aulas, nota ${f1(ps.nota)}; chefões derrotados: ${Object.values(S.chefes).filter(Boolean).length}/${PROG_PONTOS_FRACOS.length}\nFaculdade: ${fs.discs} disciplinas, ${fs.ap} acima da média, nota ${f1(fs.nota)}, ${fs.tdone}/${fs.tarefas} tarefas\nAnalise meu desempenho, diga meus pontos fracos e o que priorizar nesta semana.`; }
+function textoBoletim(){ const lv = nivel(), cs = claudeStats(), ps = progStats(), fs = facStats(); return `Evolution Lab · Boletim de ${S.nome} (${new Date().toLocaleDateString("pt-BR")})\nNível ${lv.n} · ${lv.nome} · ${lv.xp} XP · nota geral ${f1(notaGeral())} · ${streak()} dias seguidos\nCurso de Claude: ${cs.done}/${cs.total}, nota ${f1(cs.nota)}, título ${claudeTitulo()}\nProgramação: ${ps.done}/${ps.total} aulas, nota ${f1(ps.nota)}; chefões derrotados: ${Object.values(S.chefes).filter(Boolean).length}/${PROG_PONTOS_FRACOS.length}\nFaculdade: ${fs.discs} disciplinas, ${fs.ap} acima da média, nota ${f1(fs.nota)}, ${fs.tdone}/${fs.tarefas} tarefas\nAnalise meu desempenho, diga meus pontos fracos e o que priorizar nesta semana.`; }
 
 /* ===================== render ===================== */
 function render(keep){
@@ -632,7 +632,7 @@ function render(keep){
   $("#view").innerHTML = v;
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
   if (keep) scrollTo(0, y);
-  document.title = (r.startsWith("aula-") ? (CURSO_CLAUDE.find(x => x.id === r.slice(5))||{}).titulo + " · " : "") + "Escola do Arnold";
+  document.title = (r.startsWith("aula-") ? (CURSO_CLAUDE.find(x => x.id === r.slice(5))||{}).titulo + " · " : "") + "Evolution Lab";
 }
 let lastR = null;
 addEventListener("hashchange", () => { if (!SESS && !LOCAL) return; const r = rota(); if (r !== lastR){ lastR = r; fecharModal(); render(); scrollTo(0,0); } });
@@ -656,7 +656,7 @@ document.addEventListener("click", e => {
     act(() => { const a = S.missoes[id] = (S.missoes[id] || []).slice(); a[+k] = !a[+k]; on = a[+k]; }, "claude", null, e);
     t.setAttribute("aria-checked", String(on)); if (on){ S.log[0] && !S.log[0].txt && (S.log[0].txt = `Missão: ${x.missao[+k]}`); } return; }
   if (d.copyAula) return copiar(textoAula(d.copyAula));
-  if (d.duvida){ const x = CURSO_CLAUDE.find(z => z.id === d.duvida); return copiar(`Escola do Arnold · Curso de Claude · ${nomeItem(x)}: ${x.titulo}\nTenho uma dúvida sobre esta aula: `); }
+  if (d.duvida){ const x = CURSO_CLAUDE.find(z => z.id === d.duvida); return copiar(`Evolution Lab · Curso de Claude · ${nomeItem(x)}: ${x.titulo}\nTenho uma dúvida sobre esta aula: `); }
   if (d.sheet !== undefined) return abrirSheet(d.sheet);
   if (d.prog !== undefined){ const n = d.prog; let on; act(() => { const r = S.prog[n] = Object.assign({}, S.prog[n]); r.done = !r.done; on = r.done; }, "prog", null, e); if (on) S.log[0].txt = `Programação · Aula ${n} concluída`; abrirSheet(n); render(true); return; }
   if (d.ptot){ const [n,v] = d.ptot.split(":"); act(() => { const r = S.prog[n] = Object.assign({}, S.prog[n]); r.tot = +v; if (r.ok === undefined || r.ok > r.tot) r.ok = undefined; }, "prog", null); abrirSheet(n); return; }
@@ -672,7 +672,7 @@ document.addEventListener("click", e => {
   if (d.delDisc){ if (t.dataset.confirm !== "1"){ t.dataset.confirm = "1"; t.textContent = "Toque de novo para remover"; return; } const disc = S.fac.discs.find(x => x.id === d.delDisc); act(() => { S.fac.discs = S.fac.discs.filter(x => x.id !== d.delDisc); }, "fac", `Removi ${disc.nome}`); render(true); return; }
   if (d.copyDisc) return copiar(textoFac(S.fac.discs.find(x => x.id === d.copyDisc)));
   if (d.copyFac) return copiar(textoFac());
-  if (d.copyPortal){ const p = S.fac.portal || {}; return copiar(`Escola do Arnold · Portal Estácio (sincronizado ${new Date(p.at).toLocaleString("pt-BR")})\n${(p.disciplinas||[]).map(x => `- ${x.nome}: ${x.progresso||0}% · ${x.prova||""}`).join("\n")}\nRequisitos: ${Object.entries(p.requisitos||{}).map(([k,[v,t]]) => `${k} ${v}/${t}`).join(", ")}\nMonte um plano de estudo desta semana para essas disciplinas, encaixado na minha rotina (seg a qui 20h-00h, fim de semana leve, sexta descanso).`); }
+  if (d.copyPortal){ const p = S.fac.portal || {}; return copiar(`Evolution Lab · Portal Estácio (sincronizado ${new Date(p.at).toLocaleString("pt-BR")})\n${(p.disciplinas||[]).map(x => `- ${x.nome}: ${x.progresso||0}% · ${x.prova||""}`).join("\n")}\nRequisitos: ${Object.entries(p.requisitos||{}).map(([k,[v,t]]) => `${k} ${v}/${t}`).join(", ")}\nMonte um plano de estudo desta semana para essas disciplinas, encaixado na minha rotina (seg a qui 20h-00h, fim de semana leve, sexta descanso).`); }
   if (d.copyBol) return copiar(textoBoletim());
   if (d.meta){ S.cfg.meta = +d.meta; persist(); render(true); return; }
   if (d.som){ S.cfg.som = !S.cfg.som; persist(); render(true); if (S.cfg.som) som("ok"); return; }
@@ -725,7 +725,7 @@ function starfield(){
 function telaLogin(cofre){
   const sd = saudacao();
   $("#app").innerHTML = `<div class="login"><canvas id="stars"></canvas><form class="login-box" id="login-form" autocomplete="on">
-   ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Escola do Arnold</h1><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
+   ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Evolution Lab</h1><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
    <input type="text" name="username" value="${esc(cofre && cofre.user || HOST)}" autocomplete="username" hidden>
    <label class="field">Senha<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
    <label class="row small" style="gap:10px;cursor:pointer"><input type="checkbox" id="lembrar" checked style="width:20px;height:20px;accent-color:#22D3EE"> Manter conectado neste aparelho</label>
@@ -752,7 +752,7 @@ function telaSetup(){
    ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">Primeiro acesso</span><h1 style="margin-top:6px;font-size:clamp(1.7rem,6vw,2.4rem)">Vamos criar seu cofre</h1><p class="muted" style="margin:8px 0 0">É uma vez só. Depois, de qualquer aparelho, você entra só com a senha.</p></div>
    <section class="card stack" style="gap:12px"><b>1. Crie sua senha</b><label class="field">Senha (mínimo 6 caracteres)<input type="password" id="s1" autocomplete="new-password" required></label><label class="field">Repita a senha<input type="password" id="s2" autocomplete="new-password" required></label></section>
    <section class="card stack" style="gap:12px"><b>2. Cole a chave de salvamento do GitHub</b>
-    <ol class="steps"><li><span>Abra <a href="${url}" target="_blank" rel="noopener">github.com → Fine-grained token</a>.</span></li><li><span>Nome: <code>escola-do-arnold</code>. Validade: 1 ano.</span></li><li><span>Repository access: <b>Only select repositories</b> → <code>${esc(REPO)}</code>.</span></li><li><span>Permissions → Repository: <b>Contents: Read and write</b>. Account: <b>Gists: Read and write</b>.</span></li><li><span>Clique em Generate token, copie e cole aqui.</span></li></ol>
+    <ol class="steps"><li><span>Abra <a href="${url}" target="_blank" rel="noopener">github.com → Fine-grained token</a>.</span></li><li><span>Nome: <code>evolution-lab</code>. Validade: 1 ano.</span></li><li><span>Repository access: <b>Only select repositories</b> → <code>${esc(REPO)}</code>.</span></li><li><span>Permissions → Repository: <b>Contents: Read and write</b>. Account: <b>Gists: Read and write</b>.</span></li><li><span>Clique em Generate token, copie e cole aqui.</span></li></ol>
     <label class="field">Token<input type="password" id="tok" autocomplete="off" placeholder="github_pat_…" required></label>
     <p class="tiny dim" style="margin:0">O token fica guardado criptografado com a sua senha. Sem a senha, ninguém consegue usá-lo.</p></section>
    <div class="err" id="serr" role="alert"></div><button class="btn gold" type="submit" id="sbtn">Criar meu cofre e entrar</button></form></div>`;
@@ -768,7 +768,7 @@ async function doSetup(){
     btn.textContent = "Conferindo o token…"; const u = await gh("/user", {}, tok);
     btn.textContent = "Criando o cofre…"; const salt = crypto.getRandomValues(new Uint8Array(16)), iter = 250000; const k = await deriveKey(a, salt, iter);
     S.updatedAt = Date.now();
-    const g = await gh("/gists", {method:"POST", body:JSON.stringify({description:"Escola do Arnold · progresso (criptografado)", public:false, files:{"progresso.json":{content:JSON.stringify({v:1, at:S.updatedAt, box: await encJSON(k, S)})}}})}, tok);
+    const g = await gh("/gists", {method:"POST", body:JSON.stringify({description:"Evolution Lab · progresso (criptografado)", public:false, files:{"progresso.json":{content:JSON.stringify({v:1, at:S.updatedAt, box: await encJSON(k, S)})}}})}, tok);
     const cofre = {v:1, salt:b64(salt), iter, user:u.login, box: await encJSON(k, {token:tok, gist:g.id})};
     btn.textContent = "Guardando no GitHub…"; await putCofre(cofre, tok);
     COFRE = cofre; KEY = k; SESS = {token:tok, gist:g.id, user:u.login, lembrar:true}; saveSess();
