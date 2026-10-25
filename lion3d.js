@@ -157,6 +157,10 @@
   oops:{dur:2.1,face:'worried',pose(t){const d=Math.exp(-t*1.3),sh=Math.sin(t*15)*.55*d,k=sm(t/.2);return {bob:-.1*k,yaw:Math.sin(t*3)*.15*d,headY:sh,headX:.3*k*sm((2.1-t)/.4),headZ:Math.sin(t*10)*.05*d,bodyX:.12*k,shR:.5*k,shL:-.5*k,elR:-.1,elL:-.1,shRx:.2,shLx:.2,hipRx:-.12*k,hipLx:-.12*k,knR:.28*k,knL:.28*k,tail:-.3,tailX:-.4,glow:.25,flash:[.9,.15,.2]};}},
   spin:{dur:1.6,face:'wide',pose(t){const k=ease(t/1.3);return {bob:Math.sin(Math.min(1,t/1.3)*PI)*.18,yaw:k*TAU,headY:0,shR:.6,shL:-.6,elR:-.5,elL:-.5,tail:Math.sin(t*9)*.6,glow:1.1};}},
   celebrate:{dur:3.4,face:'star',pose(t){const up=sm(t/.25)*sm((3.4-t)/.5),j=Math.abs(Math.sin(t*PI*1.6))*.55*up;return {bob:j,yaw:ease(t/2.2)*TAU*2,headX:-.2*up,shR:.25+2.4*up,shL:-.25-2.4*up,elRz:Math.sin(t*16)*.4*up,elLz:-Math.sin(t*16)*.4*up,hipRx:-.2*up,hipLx:-.2*up,knR:.4*up*(1-j),knL:.4*up*(1-j),tail:Math.sin(t*14)*.8,glow:1.6,flash:[.95,.75,.2]};}},
+  hungry:{dur:Infinity,face:'sad',pose(t){return {bob:-.04+Math.sin(t*1.2)*.015,yaw:Math.sin(t*.4)*.25,headX:.28,headY:Math.sin(t*.7)*.12,bodyX:.16,shR:.3,shRx:-.55,elR:-1.5,shL:-.3,elL:-.2,hipRx:-.1,hipLx:-.1,knR:.2,knL:.2,tail:-.25,tailX:-.4,glow:.3};}},
+  sleepy:{dur:Infinity,face:'sleep',pose(t){return {bob:-.05+Math.sin(t*.9)*.02,yaw:Math.sin(t*.3)*.15,headX:.5+Math.sin(t*.9)*.05,headZ:.1,bodyX:.1,shR:.15,shL:-.15,elR:-.2,elL:-.2,knR:.15,knL:.15,tail:-.2,tailX:-.3,glow:.15};}},
+  eat:{dur:2.6,face:'happy',pose(t){const m=Math.sin(t*9);return {bob:Math.abs(m)*.03,yaw:Math.sin(t*1.5)*.15,headX:.1+m*.08,shR:.9,shRx:-.9,elR:-1.7+m*.25,shL:.5,shLx:-.7,elL:-1.5+m*.2,tail:Math.sin(t*10)*.5,glow:1.1};}},
+  drink:{dur:2.2,face:'wide',pose(t){const k=sm(t/.4)*sm((2.2-t)/.4);return {headX:-.35*k,bob:0,shR:.8*k,shRx:-1.0*k,elR:-1.9*k,shL:-.2,tail:Math.sin(t*6)*.3,glow:1};}},
   think:{dur:2.6,face:'wide',pose(t){return {headY:.3,headZ:.15,headX:-.1,shR:1.0,shRx:-1.0,elR:-1.9,elRz:0,bob:Math.sin(t*2)*.02,glow:.7};}}
  };
  const KEYS=['bob','yaw','headX','headY','headZ','bodyX','shR','shL','shRx','shLx','elR','elL','elRz','elLz','hipRx','hipLx','knR','knL','tail','tailX','glow'];
@@ -179,19 +183,19 @@
   function resize(){const dpr=Math.min(window.devicePixelRatio||1,opts.maxDpr||2),cw=canvas.clientWidth||canvas.width||100,ch=canvas.clientHeight||canvas.height||100;w=Math.max(8,Math.round(cw*dpr));h=Math.max(8,Math.round(ch*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}}
   /* estado da animação */
   const cur={},tgt={};KEYS.forEach(k=>{cur[k]=0;tgt[k]=0;});cur.glow=.6;
-  let clip='idle',clipT=0,clock=0,yawUser=0,yawVel=0,dragging=false,motion=opts.motion!==false,running=false,raf=0,last=0,blinkAt=2.5,blinkT=-1,flash=null,flashT=0,queue=null,parts=[];
+  let base='idle',clip='idle',clipT=0,clock=0,yawUser=0,yawVel=0,dragging=false,motion=opts.motion!==false,running=false,raf=0,last=0,blinkAt=2.5,blinkT=-1,flash=null,flashT=0,queue=null,parts=[];
   function play(name){if(!CLIPS[name])return;if(!motion&&opts.auto!==false&&name!=='spin'&&name!=='celebrate'&&!opts.force)return;clip=name;clipT=0;queue=null;if(CLIPS[name].flash){flash=CLIPS[name].flash;flashT=0;}if(name==='cheer'||name==='celebrate')burst(name==='celebrate'?[1,.85,.3]:[.4,1,.7],name==='celebrate'?46:26);if(name==='oops')burst([1,.35,.35],12);start();}
   function burst(col,n){for(let i=0;i<n;i++){const a=Math.random()*TAU,u=Math.random()*2-1,sp=.6+Math.random()*1.4;parts.push({x:(Math.random()-.5)*.6,y:1.9+Math.random()*.6,z:(Math.random()-.5)*.6,vx:Math.cos(a)*Math.sqrt(1-u*u)*sp,vy:u*sp+1.3,vz:Math.sin(a)*Math.sqrt(1-u*u)*sp,life:1,c:col});}}
   const pbuf=gl.createBuffer();
   function applyPose(dt){
-    const c=CLIPS[clip],idle=CLIPS.idle.pose(clock);let p=c.pose(clipT);
+    const c=CLIPS[clip],idle=CLIPS[base].pose(clock);let p=c.pose(clipT);
     const mix={};KEYS.forEach(k=>{mix[k]=p[k]!==undefined?p[k]:idle[k]||0;});
     if(clip!=='idle'&&p.yaw===undefined)mix.yaw=idle.yaw;
     if(clip!=='idle'&&p.yaw!==undefined&&clip!=='hello'&&clip!=='talk')mix.yaw=p.yaw;
     if(clip!=='idle'&&!('tail' in p))mix.tail=idle.tail;
     KEYS.forEach(k=>{tgt[k]=mix[k];});
     const k=1-Math.exp(-dt*(clip==='idle'?7:16));KEYS.forEach(key=>{cur[key]+=(tgt[key]-cur[key])*(key==='yaw'&&clip!=='idle'&&clip!=='hello'&&clip!=='talk'?1:k);});
-    if(clipT>c.dur){clip='idle';clipT=0;}
+    if(clipT>c.dur){clip=base;clipT=0;}
     /* rosto */
     let face=c.face;if(clip==='idle'||clip==='hello'||clip==='talk'){if(blinkT>=0){face='blink';blinkT+=dt;if(blinkT>.14)blinkT=-1;}else if(clock>blinkAt){blinkT=0;blinkAt=clock+2.2+Math.random()*3;}}
     setFace(face);
@@ -231,7 +235,8 @@
   function step(dt){clock+=dt;clipT+=dt;if(!dragging){yawUser+=yawVel*dt;yawVel*=Math.exp(-dt*2.2);}parts.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;p.vy-=2.2*dt;p.life-=dt*.8;});parts=parts.filter(p=>p.life>0);applyPose(dt);}
   const fpsGap=1000/(opts.fps||30);
   function frame(now,force){raf=0;if(!force&&!running)return;const dt=Math.min(.1,Math.max(.001,(now-(last||now))/1000)||.016);if(!force&&now-last<fpsGap-2){raf=requestAnimationFrame(frame);return;}last=now;step(dt);draw();
-   if(running&&(motion||clip!=='idle'||parts.length||Math.abs(yawVel)>.02)){raf=requestAnimationFrame(frame);}else if(running){running=false;}}
+   if(running&&(motion||clip!==base||parts.length||Math.abs(yawVel)>.02)){raf=requestAnimationFrame(frame);}else if(running){running=false;}}
+  function setBase(n){if(!CLIPS[n])return;const was=clip===base;base=n;if(was){clip=n;clipT=0;}if(!running)still();}
   function start(){if(running)return;running=true;last=0;if(!raf)raf=requestAnimationFrame(frame);}
   function stop(){running=false;if(raf)cancelAnimationFrame(raf);raf=0;}
   function still(){step(.016);draw();}
@@ -241,7 +246,7 @@
    el.addEventListener('pointermove',e=>{if(!dragging||e.pointerId!==id)return;const dx=e.clientX-lx,now=performance.now(),dt=Math.max(1,now-lt);mv+=Math.abs(dx);yawUser+=dx*.012;yawVel=dx*.012/(dt/1000);lx=e.clientX;lt=now;if(!motion)still();});
    const end=e=>{if(e.pointerId!==id)return;const tap=e.type==='pointerup'&&mv<8&&performance.now()-t0<450;dragging=false;id=null;if(tap&&onTap){try{onTap();}catch(_){}}if(Math.abs(yawVel)>9)yawVel=Math.sign(yawVel)*9;start();};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
    el.addEventListener('dblclick',()=>{yawUser=Math.round(yawUser/TAU)*TAU;yawVel=0;if(!motion)still();else start();});}
-  return {play,start,stop,still,drag,burst,setMotion(v){motion=!!v;if(!motion)stop();},isMotion:()=>motion,setYaw(v){yawUser=v;},resize,canvas,faces:FACES,
+  return {play,setBase,start,stop,still,drag,burst,setMotion(v){motion=!!v;if(!motion)stop();},isMotion:()=>motion,setYaw(v){yawUser=v;},resize,canvas,faces:FACES,
    dispose(){stop();try{const x=gl.getExtension('WEBGL_lose_context');x&&x.loseContext();}catch(_){}}};
  }
  function supported(){try{const c=document.createElement('canvas');return !!(c.getContext('webgl')||c.getContext('experimental-webgl'));}catch(e){return false;}}
