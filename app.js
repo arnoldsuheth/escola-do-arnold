@@ -168,6 +168,8 @@ function streak(){
   for (let guard = 0; guard < 400; guard++){ const k = iso(d); if (at[k]) c++; else if (d.getDay() !== 5) break; d.setDate(d.getDate()-1); }
   return c;
 }
+function contaHoje(kinds){ const h = hoje(); return S.log.filter(l => l.d === h && kinds.includes(l.k) && ((l.xp||0) > 0 || l.k === "retry" || l.k === "desafio")).length; }
+function feitoQ(q){ return (q.n||1) > 1 ? contaHoje(q.k) >= q.n : feitoHoje(q.k); }
 function feitoHoje(kinds){ const h = hoje(); return S.log.some(l => l.d === h && kinds.includes(l.k) && ((l.xp||0) > 0 || l.k === "retry" || l.k === "desafio")); }
 const proxClaude = () => CURSO_CLAUDE.find(x => !(S.claude[x.id] && S.claude[x.id].done));
 const proxProg = () => PROG_AULAS.find(([n]) => !(S.prog[n] && S.prog[n].done));
@@ -181,12 +183,18 @@ function missoesDia(){
   else if (pc) list.push({k:["claude"], ic:"ia", t:`Curso de Claude: ${nomeItem(pc)}`, s:pc.titulo, href:`#aula-${pc.id}`, xp:"até 50"});
   if (dow >= 1 && dow <= 4 && feitoHoje(["prog"])) list.push({k:["prog"], ic:"code", t:"Programação", s:"Aula de hoje concluída", href:"#prog", xp:"até 50"});
   else if (dow >= 1 && dow <= 4 && pp) list.push({k:["prog"], ic:"code", t:`Programação: Aula ${pp[0]}`, s:pp[2], href:`#prog-${pp[0]}`, xp:"até 50"});
+  const cDone = contaHoje(["claude"]), pDone = contaHoje(["prog"]);
+  const pcs = CURSO_CLAUDE.filter(x => !(S.claude[x.id] && S.claude[x.id].done)), pps = PROG_AULAS.filter(([n]) => !(S.prog[n] && S.prog[n].done));
+  const c2 = cDone >= 2 ? null : (cDone === 1 ? pcs[0] : pcs[1]), p2 = pDone >= 2 ? null : (pDone === 1 ? pps[0] : pps[1]);
+  if (cDone >= 2) list.push({k:["claude"], n:2, ic:"ia", t:"Claude: aula extra", s:"Segunda aula concluída", href:"#claude", xp:"até 50"});
+  else if (c2) list.push({k:["claude"], n:2, ic:"ia", t:`Claude: aula extra · ${nomeItem(c2)}`, s:c2.titulo, href:`#aula-${c2.id}`, xp:"até 50"});
+  if (dow >= 1 && dow <= 4) { if (pDone >= 2) list.push({k:["prog"], n:2, ic:"code", t:"Programação: aula extra", s:"Segunda aula concluída", href:"#prog", xp:"até 50"}); else if (p2) list.push({k:["prog"], n:2, ic:"code", t:`Programação: aula extra ${p2[0]}`, s:p2[2], href:`#prog-${p2[0]}`, xp:"até 50"}); }
   if (fac) list.push({k:["fac"], ic:"fac", t:`Faculdade: ${fac.t.t}`, s:fac.d.nome, href:"#fac", xp:"+10"});
   list.push({k:["desafio"], ic:"sword", t:"Desafio do dia", s: dd && dd.done ? `Feito: ${dd.best}/${dd.total}` : "6 perguntas sorteadas da sua carreira", href:"#desafio-dia", xp:"até 30"});
   if (pa) list.push({k:["retry"], ic:"bolt", t:"Revisão relâmpago", s:`Refaça o quiz de ${nomeItem(pa)}: ${pa.titulo}`, href:`#aula-${pa.id}-quiz`, xp:"+XP"});
-  return {rest:false, list:list.slice(0, 4)};
+  return {rest:false, list:list.slice(0, 7)};
 }
-function missoesCompletas(){ const m = missoesDia(); return m.list.length && m.list.every(q => feitoHoje(q.k)); }
+function missoesCompletas(){ const m = missoesDia(); return m.list.length && m.list.every(q => feitoQ(q)); }
 
 
 function rngProg(a,b){ let t = 0, d = 0; for (let i=a;i<=b;i++){ t++; if (S.prog[i] && S.prog[i].done) d++; } return t ? d/t : 0; }
@@ -414,7 +422,7 @@ function viewHoje(){
   const seg = new Date(); seg.setDate(seg.getDate() - ((seg.getDay()+6)%7));
   const NOMES = ["dom","seg","ter","qua","qui","sex","sáb"];
   const semana = [...Array(7)].map((_,i) => { const d = new Date(seg); d.setDate(seg.getDate()+i); const k = iso(d); return `<div><i class="${at[k]?"on":""} ${d.getDay()===5&&!at[k]?"rest":""} ${k===hoje()?"today":""}" title="${fmtData(k)}: ${at[k]||0} xp"></i><small>${NOMES[d.getDay()]}</small></div>`; }).join("");
-  const feitas = md.list.filter(q => feitoHoje(q.k)).length;
+  const feitas = md.list.filter(q => feitoQ(q)).length;
   const conq = med.filter(m => m[2]).concat(med.filter(m => !m[2])).slice(0,4);
   const abrev = t => t.split(" ").map(w => w[0]).join("").slice(0,3).toUpperCase();
   const prox = pc ? `#aula-${pc.id}` : "#perfil";
@@ -434,7 +442,7 @@ function viewHoje(){
      <div class="stats3"><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">aulas</div><div class="v num">${cs.done+ps.done+ds.d}<small>/${cs.total+ps.total+ds.t}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
      ${studyProgressHTML(cs,ps,ds,fs)}<div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${Math.max(0,lv.prox-lv.xp)} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div><p class="small" style="color:var(--amber);margin:8px 0 0">${esc(pendingPromotion(lv))}</p><details class="level-info"><summary>Sobre os níveis</summary><p class="tiny muted">Os cargos representam níveis do jogo. A prática demonstra seu domínio técnico.</p></details></section>
     <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +10 xp"}</span></div>
-     <div style="margin-top:6px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
+     <div style="margin-top:6px">${md.list.map(q => { const ok = feitoQ(q); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
      <div class="row" style="margin-top:12px"><a class="btn gold" href="${prox}">${pc ? `Continuar quest · ${esc(nomeItem(pc))}` : "Ver certificado"}</a>${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div></section>
     <div class="trees o4"><div class="ttabs" role="tablist">${[["prog","Programação"],["claude","Claude"],["fac","Faculdade"],["design","Design"]].map(([k,t]) => `<button role="tab" data-ttab="${k}" aria-selected="${TREE_TAB===k}">${t}</button>`).join("")}</div>
     <section class="card treecard ${TREE_TAB==="prog"?"on":""}" data-tree="prog"><div class="row between"><span class="k">Árvore · Programação</span><a class="tiny mono" href="#prog" style="color:var(--violet);text-decoration:none">${Math.round(ps.p*100)}% ›</a></div><div style="margin-top:8px">${arv.svg}${listaArvore(arvoreProgNodes().nodes)}</div><div class="small muted">${arv.txt}</div></section>

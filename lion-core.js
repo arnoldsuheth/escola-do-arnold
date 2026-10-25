@@ -65,10 +65,10 @@
  function bubblePosition(anchor,width,height,bounds){const top=anchor.top-height-12;return clampBox(anchor.right-width,top>=bounds.top?top:anchor.bottom+12,width,height,bounds);}
 
  /* ===== Lion Tamagotchi: fome, sede, energia, ração vinda do XP. Nunca morre; tudo é calculado pelo relógio e sincroniza com as preferências. ===== */
- const PET={xpPerRation:40,maxRation:10,startRation:2,capHours:24,decay:{fome:1.5,sede:2,energia:2},sleepGain:6,night:{from:22,to:6},feed:30,drink:40,nap:30,napsPerDay:3};
+ const PET={xpPerRation:10,maxRation:40,startRation:8,cost:{feed:4,drink:2,play:3,nap:1},capHours:24,decay:{fome:1.5,sede:2,energia:2},sleepGain:6,night:{from:22,to:6},feed:30,drink:40,nap:30,napsPerDay:3};
  const clamp100=(n,d)=>{n=Number(n);return Number.isFinite(n)?Math.max(0,Math.min(100,n)):d;};
  function petClean(p){const v=p||{};const ration=Number(v.racao);return {at:Number(v.at)>0?Number(v.at):0,since:Number(v.since)>0?Number(v.since):0,fome:clamp100(v.fome,80),sede:clamp100(v.sede,80),energia:clamp100(v.energia,80),
-  racao:Number.isFinite(ration)?Math.max(0,Math.min(PET.maxRation,Math.floor(ration))):PET.startRation,xpSeen:Number.isFinite(Number(v.xpSeen))&&v.xpSeen!==null&&v.xpSeen!==undefined?Number(v.xpSeen):null,
+  ver:2,racao:Number.isFinite(ration)?Math.max(0,Math.min(PET.maxRation,Math.floor(v.ver===2?ration:ration*4))):PET.startRation,xpSeen:Number.isFinite(Number(v.xpSeen))&&v.xpSeen!==null&&v.xpSeen!==undefined?Number(v.xpSeen):null,
   playDay:typeof v.playDay==='string'?v.playDay.slice(0,10):'',napDay:typeof v.napDay==='string'?v.napDay.slice(0,10):'',napN:Math.max(0,Math.min(9,Math.floor(Number(v.napN)||0)))};}
  const isNight=h=>h>=PET.night.from||h<PET.night.to;
  /* avança o relógio do Lion hora a hora (no máximo 24 h por vez). Sexta, horário silencioso e modo foco pausam o desgaste. */
@@ -81,10 +81,10 @@
   p.at=nowMs;return p;}
  function petRation(pet,xpNow){const p=petClean(pet);if(!Number.isFinite(xpNow))return {pet:p,given:0};if(p.xpSeen===null||xpNow<p.xpSeen){p.xpSeen=xpNow;return {pet:p,given:0};}
   const n=Math.floor((xpNow-p.xpSeen)/PET.xpPerRation),give=Math.min(n,PET.maxRation-p.racao);if(give>0){p.racao+=give;p.xpSeen+=give*PET.xpPerRation;}return {pet:p,given:Math.max(0,give)};}
- function petFeed(pet){const p=petClean(pet);if(p.fome>=95)return {pet:p,ok:false,why:'cheio'};if(p.racao<1)return {pet:p,ok:false,why:'sem-racao'};p.racao-=1;p.fome=Math.min(100,p.fome+PET.feed);return {pet:p,ok:true};}
- function petDrink(pet){const p=petClean(pet);if(p.sede>=95)return {pet:p,ok:false,why:'sem-sede'};p.sede=Math.min(100,p.sede+PET.drink);return {pet:p,ok:true};}
- function petNap(pet,dayKey){const p=petClean(pet);if(p.napDay!==dayKey){p.napDay=dayKey;p.napN=0;}if(p.energia>=90)return {pet:p,ok:false,why:'sem-sono'};if(p.napN>=PET.napsPerDay)return {pet:p,ok:false,why:'limite'};p.napN+=1;p.energia=Math.min(100,p.energia+PET.nap);return {pet:p,ok:true};}
- function petPlay(pet,dayKey){const p=petClean(pet);p.playDay=dayKey;return p;}
+ function petFeed(pet){const p=petClean(pet);if(p.fome>=95)return {pet:p,ok:false,why:'cheio'};if(p.racao<PET.cost.feed)return {pet:p,ok:false,why:'sem-racao'};p.racao-=PET.cost.feed;p.fome=Math.min(100,p.fome+PET.feed);return {pet:p,ok:true};}
+ function petDrink(pet){const p=petClean(pet);if(p.sede>=95)return {pet:p,ok:false,why:'sem-sede'};if(p.racao<PET.cost.drink)return {pet:p,ok:false,why:'sem-racao'};p.racao-=PET.cost.drink;p.sede=Math.min(100,p.sede+PET.drink);return {pet:p,ok:true};}
+ function petNap(pet,dayKey){const p=petClean(pet);if(p.napDay!==dayKey){p.napDay=dayKey;p.napN=0;}if(p.energia>=90)return {pet:p,ok:false,why:'sem-sono'};if(p.napN>=PET.napsPerDay)return {pet:p,ok:false,why:'limite'};if(p.racao<PET.cost.nap)return {pet:p,ok:false,why:'sem-racao'};p.racao-=PET.cost.nap;p.napN+=1;p.energia=Math.min(100,p.energia+PET.nap);return {pet:p,ok:true};}
+ function petPlay(pet,dayKey){const p=petClean(pet);if(p.playDay===dayKey)return {pet:p,ok:false,why:'ja-brincou'};if(p.racao<PET.cost.play)return {pet:p,ok:false,why:'sem-racao'};p.racao-=PET.cost.play;p.playDay=dayKey;return {pet:p,ok:true};}
  function petMood(pet,hour,dayKey){const p=petClean(pet);const humor=Math.max(0,Math.min(100,Math.round((p.fome+p.sede+p.energia)/3*.85+(p.playDay===dayKey?15:0))));
   let state='feliz',label='Feliz';if(p.sede<25&&p.sede<=p.fome){state='fome';label='Com sede';}else if(p.fome<30){state='fome';label='Com fome';}else if(p.energia<25||isNight(hour)){state='sono';label='Sonolento';}
   return {state,label,humor,base:state==='fome'?'hungry':state==='sono'?'sleepy':'idle'};}
