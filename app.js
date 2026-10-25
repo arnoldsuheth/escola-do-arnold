@@ -166,9 +166,9 @@ function atributos(){
   const cl = CURSO_CLAUDE.reduce((s,x) => { const r = S.claude[x.id]; return s + (r && r.done ? .6 + .4*pct(r) : 0); }, 0) / CURSO_CLAUDE.length;
   const logica = Math.min(1, rngProg(29,39)*.7 + (fs.tarefas ? fs.tdone/fs.tarefas : 0)*.3);
   const fac = fs.discs ? fs.p*.6 + (fs.ap/fs.discs)*.4 : 0;
-  const arte = (extStats(extC("arte")).p + extStats(extC("criadores")).p) / 2;
-  const mus = Math.min(1, extStats(extC("violao")).p*.6 + Math.min(1, Object.values(S.violao.acordes).filter(v => v === 2).length/12)*.25 + Math.min(1, S.violao.musicas.filter(m => m.st === "d").length/10)*.15);
-  return [["Lógica",logica,"#22D3EE"],["Front-end",fe,"#A78BFA"],["IA / Claude",cl,"#F59E0B"],["Git",rngProg(25,28),"#34D399"],["Faculdade",fac,"#F472B6"],["Arte e design",arte,"#FBBF24"],["Música",mus,"#FB923C"]].map(([n,v,c]) => [n, Math.round(v*100), c]);
+  const cr = extC("criadores"); let cd = 0, ct = 0; cr.car.forEach(mi => { cd += modFeitas(cr, mi); ct += modTot(cr.mods[mi]); });
+  const design = ct ? cd/ct : 0;
+  return [["Lógica",logica,"#22D3EE"],["Front-end",fe,"#A78BFA"],["IA / Claude",cl,"#F59E0B"],["Git",rngProg(25,28),"#34D399"],["Faculdade",fac,"#F472B6"],["Design",design,"#FBBF24"]].map(([n,v,c]) => [n, Math.round(v*100), c]);
 }
 const TREE = [{id:"HTML",a:0,b:8,x:40,y:75},{id:"CSS",a:9,b:24,x:180,y:75},{id:"Git",a:25,b:26,x:310,y:36},{id:"JS",a:29,b:39,x:310,y:114},{id:"GitHub",a:27,b:28,x:440,y:36},{id:"DOM",a:40,b:45,x:440,y:114},{id:"v1.0",a:46,b:50,x:560,y:75}];
 const TREE_E = [["HTML","CSS"],["CSS","Git"],["CSS","JS"],["Git","GitHub"],["JS","DOM"],["GitHub","v1.0"],["DOM","v1.0"]];
@@ -191,15 +191,16 @@ function arvore(){
 
 /* ===================== ação com XP ===================== */
 function act(fn, k, txt, ev){
-  const before = xpTotal(), lvB = nivel(before).n;
+  const before = xpTotal(), lvB = nivel(before).n, hb0 = xpHobby();
   fn();
-  let delta = xpTotal() - before;
+  let delta = xpTotal() - before; const hd = xpHobby() - hb0;
   if (delta !== 0 || txt){ S.log.unshift({t:Date.now(), d:hoje(), k, txt, xp: k === "import" ? 0 : delta}); S.log = S.log.slice(0, 400); }
   let bonusAgora = false;
   if (delta > 0 && !S.bonus[hoje()] && missoesCompletas()){ S.bonus[hoje()] = true; S.log.unshift({t:Date.now(), d:hoje(), k:"bonus", txt:"Missões do dia completas", xp:50}); bonusAgora = true; }
   persist();
   const total = xpTotal(), lvA = nivel(total);
   if (delta > 0){ floatXP("+" + delta + " XP", ev); som("xp"); }
+  else if (hd > 0){ floatXP("+" + hd + " hobby", ev); som("ok"); if (S.log[0] && S.log[0].t > Date.now() - 2000) S.log[0].hb = hd; }
   if (lvA.n > lvB) setTimeout(() => levelUp(lvA), 500);
   else if (bonusAgora) setTimeout(() => modal(`<span class="tag gold">quests de hoje · 100%</span><h2>Todas as quests concluídas</h2><p class="muted">Bônus de constância: <b class="mono" style="color:var(--cyan)">+50 xp</b>.</p><button class="btn gold" data-close>Continuar</button>`, true), 450);
   paintTop();
@@ -666,13 +667,23 @@ function extProx(c){
   return {mi:best, t:m.t, m:m.t};
 }
 const aulaURL = (c, mi, ai) => { const a = c.mods[mi].aulas && c.mods[mi].aulas[ai]; return a && a[2] ? (c.id === "arte" ? AE + a[2] : a[2]) : c.url; };
+const modCar = (c, mi) => !!(c.car && c.car.includes(mi));
+const cursoCar = c => !!(c.car && c.car.length);
+/* XP de carreira: só o que é da área (módulos marcados em "car" e livros marcados como da área) */
 function xpExtra(){
   let x = 0;
-  EXT_CURSOS.forEach(c => c.mods.forEach((m,mi) => { const f = modFeitas(c, mi); x += f * XP_EXT_AULA; if (f >= modTot(m)) x += XP_EXT_MOD; }));
+  EXT_CURSOS.forEach(c => c.mods.forEach((m,mi) => { if (!modCar(c, mi)) return; const f = modFeitas(c, mi); x += f * XP_EXT_AULA; if (f >= modTot(m)) x += XP_EXT_MOD; }));
+  S.livros.forEach(l => { if (l.status === "lido" && l.area) x += XP_LIVRO; });
+  return x;
+}
+/* XP de hobby: desenho, violão, livros fora da área. Fica separado e não muda o cargo. */
+function xpHobby(){
+  let x = 0;
+  EXT_CURSOS.forEach(c => c.mods.forEach((m,mi) => { if (modCar(c, mi)) return; const f = modFeitas(c, mi); x += f * XP_EXT_AULA; if (f >= modTot(m)) x += XP_EXT_MOD; }));
   const v = S.violao; Object.values(v.treinos).forEach(min => x += Math.min(XP_TREINO_DIA, min));
   Object.values(v.acordes).forEach(s => { if (s === 2) x += XP_ACORDE; });
   v.musicas.forEach(m => { if (m.st === "d") x += XP_MUSICA; });
-  S.livros.forEach(l => { if (l.status === "lido") x += XP_LIVRO; });
+  S.livros.forEach(l => { if (l.status === "lido" && !l.area) x += XP_LIVRO; });
   return x;
 }
 function semearExt(){
@@ -687,7 +698,7 @@ function treinoSemana(){ const seg = new Date(); seg.setDate(seg.getDate() - ((s
 function streakViolao(){ const t = S.violao.treinos; let c = 0; const d = new Date(); if (!t[iso(d)]) d.setDate(d.getDate()-1); for (let g=0; g<400; g++){ if (t[iso(d)]) c++; else break; d.setDate(d.getDate()-1); } return c; }
 function capa(c){ return `background:linear-gradient(135deg,${c.cor[0]},#121722 75%)`; }
 const PLAT_COR = {Kiwify:"#7EE787", Hotmart:"#FF8A5B", "Evolution Lab":"#A78BFA", "Estácio":"#F472B6"};
-const platTag = p => `<span class="ptag" style="color:${PLAT_COR[p]||"#A3ABBD"};border-color:${PLAT_COR[p]||"#2A3245"}55">${esc(p)}</span>`;
+const platTag = p => { const k = PLAT_COR[p.split(" ·")[0]]; return `<span class="ptag" style="color:${k||"#A3ABBD"};border-color:${k||"#2A3245"}55">${esc(p)}</span>`; };
 
 function viewCursos(){
   const cs = claudeStats(), ps = progStats(), fs = facStats(), pc = proxClaude(), pp = proxProg();
@@ -695,13 +706,13 @@ function viewCursos(){
   const fora = ext.reduce((a,[,s]) => a + s.d, 0);
   const card = (href, cover, titulo, plat, linha, p, btn, gold) => `<a class="ccard" href="${href}"><div class="ccover" style="${cover}"><b>${esc(titulo)}</b></div><div class="row between">${platTag(plat)}<span class="tiny mono ${p>=1?"okc":""}">${linha}</span></div><div class="bar"><i style="width:${Math.round(p*100)}%"></i></div><span class="btn sm ${gold?"gold":""}" style="width:100%">${btn}</span></a>`;
   return `<div class="stack fade">
-  <div><span class="k">Evolution Lab · todos os cursos</span><h1 style="margin-top:6px">Meus <span class="gtext">cursos</span></h1><p class="muted" style="margin-top:4px">Tudo num lugar só. Marque aqui o que você assistiu lá e ganhe XP no seu cargo.</p></div>
-  <div class="stats3" style="max-width:560px"><div class="stat"><div class="k">cursos</div><div class="v num">${3 + EXT_CURSOS.length}</div></div><div class="stat"><div class="k">plataformas</div><div class="v num">4<small>→1</small></div></div><div class="stat"><div class="k">aulas lá fora</div><div class="v num" style="color:var(--amber)">${fora}</div></div></div>
+  <div><span class="k">Evolution Lab · todos os cursos</span><h1 style="margin-top:6px">Meus <span class="gtext">cursos</span></h1><p class="muted" style="margin-top:4px">Tudo num lugar só. Só o que é da sua área (tecnologia, design e o seu estúdio) sobe o cargo; desenho, violão e leituras fora da área viram XP de hobby.</p></div>
+  <div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">cursos</div><div class="v num">${3 + EXT_CURSOS.length}</div></div><div class="stat"><div class="k">plataformas</div><div class="v num">4<small>→1</small></div></div><div class="stat"><div class="k">aulas lá fora</div><div class="v num">${fora}</div></div><div class="stat"><div class="k">xp de hobby</div><div class="v num" style="color:var(--amber)">${xpHobby()}</div></div></div>
   <div class="cgrid">
    ${card("#claude", "background:linear-gradient(135deg,#3A2F66,#121722 75%)", "Claude do zero ao avançado", "Evolution Lab", `${cs.done}/${cs.total}`, cs.p, pc ? `Continuar · ${esc(nomeItem(pc))}` : "Ver certificado")}
    ${card("#prog", "background:linear-gradient(135deg,#1B3550,#121722 75%)", "Programação · Site BLESSAINT", "Evolution Lab", `${ps.done}/${ps.total}`, ps.p, pp ? `Continuar · Aula ${pp[0]}` : "Concluído")}
    ${card("#fac", "background:linear-gradient(135deg,#4A1E38,#121722 75%)", "Estácio · Ciência da Computação", "Estácio", `${fs.discs} disc.`, fs.p, "Ver disciplinas")}
-   ${ext.map(([c,s]) => { const px = extProx(c); return card(`#curso-${c.id}`, capa(c), c.nome, c.plat, s.p >= 1 ? "concluído" : `${s.d}/${s.t} aulas`, s.p, px ? `Próxima: ${esc(px.t)}` : "Revisar", !!px && s.d > 0); }).join("")}
+   ${ext.map(([c,s]) => { const px = extProx(c); return card(`#curso-${c.id}`, capa(c), c.nome, c.plat + (cursoCar(c) ? "" : " · hobby"), s.p >= 1 ? "concluído" : `${s.d}/${s.t} aulas`, s.p, px ? `Próxima: ${esc(px.t)}` : "Revisar", !!px && s.d > 0); }).join("")}
   </div>
   <div class="grid2"><a class="card linkcard" href="#violao"><span class="ico2">${ICO.music}</span><span><b>Violão</b><span class="tiny dim" style="display:block">Treino da semana, acordes e repertório</span></span>${ICO.arrow}</a>
    <a class="card linkcard" href="#livros"><span class="ico2">${ICO.book}</span><span><b>Biblioteca</b><span class="tiny dim" style="display:block">${S.livros.length} ${S.livros.length===1?"livro":"livros"} na estante</span></span>${ICO.arrow}</a></div>
@@ -718,14 +729,14 @@ function viewCurso(id){
       ? m.aulas.map((a, ai) => { const on = !!(r.a && r.a[mi+":"+ai]), nx = cur && px.ai === ai; return `<div class="les ${nx?"nx":""}"><button class="tick" role="checkbox" aria-checked="${on}" aria-label="Marcar ${esc(a[0])}" data-exta="${c.id}:${mi}:${ai}"></button><span class="t"><b>${esc(a[0])}</b><span class="tiny ${nx?"vio":"dim"}">${nx ? "próxima" : ""}${nx && a[1] ? " · " : ""}${a[1] ? a[1] + " min" : ""}</span></span><a class="open" href="${esc(aulaURL(c, mi, ai))}" target="_blank" rel="noopener">Abrir ↗</a></div>`; }).join("")
       : `<div class="les"><div class="cnt"><button class="btn sm" data-extm="${c.id}:${mi}:-1" aria-label="Menos uma aula">−</button><span class="mono num">${f}<small class="dim">/${n}</small></span><button class="btn sm" data-extm="${c.id}:${mi}:1" aria-label="Mais uma aula">+</button></div><span class="t tiny dim">aulas assistidas neste módulo</span>${done ? `<button class="btn sm ghost" data-extm="${c.id}:${mi}:0">zerar</button>` : `<button class="btn sm" data-extm="${c.id}:${mi}:all">Concluir módulo</button>`}</div><div class="les"><span class="t tiny dim">A lista de aulas fica na ${esc(c.plat)}.</span><a class="open" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir curso ↗</a></div>`;
     const ok2 = c.id+":"+mi, aberto = OPEN_MODS.has(ok2) || (cur && !FECHADOS.has(ok2));
-    return `<details class="mod ${done?"done":cur?"cur":""}" data-mod="${ok2}" ${aberto?"open":""}><summary><span class="mn">${done ? ICO.check : f ? Math.round(f/n*100) + "%" : "·"}</span><span style="flex:1;min-width:0"><b style="display:block;line-height:1.3">${esc(m.t)}</b><span class="tiny dim">${n} ${n===1?"aula":"aulas"}</span>${f && !done ? `<div class="bar" style="margin-top:8px;max-width:240px;height:5px"><i style="width:${Math.round(f/n*100)}%"></i></div>` : ""}</span><span class="mono small ${done?"okc":"dim"}">${f}/${n}</span></summary>${corpo}</details>`;
+    return `<details class="mod ${done?"done":cur?"cur":""}" data-mod="${ok2}" ${aberto?"open":""}><summary><span class="mn">${done ? ICO.check : f ? Math.round(f/n*100) + "%" : "·"}</span><span style="flex:1;min-width:0"><b style="display:block;line-height:1.3">${esc(m.t)}</b><span class="tiny dim">${n} ${n===1?"aula":"aulas"}</span>${cursoCar(c) ? (modCar(c, mi) ? ` <span class="xtag car">carreira</span>` : ` <span class="xtag hb">hobby</span>`) : ""}${f && !done ? `<div class="bar" style="margin-top:8px;max-width:240px;height:5px"><i style="width:${Math.round(f/n*100)}%"></i></div>` : ""}</span><span class="mono small ${done?"okc":"dim"}">${f}/${n}</span></summary>${corpo}</details>`;
   }).join("");
   return `<div class="stack fade">
   <a class="back" href="#cursos">${ICO.back} Meus cursos</a>
   <div class="chero">
    <section class="card" style="${capa(c)}">${platTag(c.plat)}<h1 style="margin:12px 0 6px">${esc(c.nome)}</h1><p class="muted">${esc(c.sub)} · ${c.mods.length} módulos, ${s.t} aulas.</p>
     <div class="row" style="margin-top:14px">${px ? `<a class="btn gold" href="${esc(pxURL)}" target="_blank" rel="noopener">▶ Continuar: ${esc(px.t)}</a>` : `<span class="tag ok">curso concluído</span>`}<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir na ${esc(c.plat)} ↗</a></div></section>
-   <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos · atributo <b style="color:${c.cor[1]}">${esc(c.attr)}</b></div><div class="tiny dim" style="margin-top:6px">Aula +${XP_EXT_AULA} xp · módulo completo +${XP_EXT_MOD} xp</div></div></section>
+   <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos</div><div class="tiny dim" style="margin-top:6px">${!cursoCar(c) ? `<span class="xtag hb">hobby</span> aula +${XP_EXT_AULA} · módulo +${XP_EXT_MOD} em XP de hobby, não muda o cargo` : `<span class="xtag car">carreira</span> ${c.car.length} de ${c.mods.length} módulos sobem o cargo (+${XP_EXT_AULA} por aula, +${XP_EXT_MOD} por módulo). Os outros contam como hobby.`}</div></div></section>
   </div>
   <div>${mods}</div>
   <p class="tiny dim">Assistiu lá? Marque aqui. O vídeo e o material continuam na ${esc(c.plat)}; aqui fica o seu progresso.</p>
@@ -748,7 +759,7 @@ function viewViolao(){
     <div class="vweek">${sem.map(d => `<div title="${fmtData(d.k)}: ${d.min} min"><i style="height:${d.min ? Math.max(8, Math.round(d.min/mx*72)) : 0}px"></i><span class="${d.k===hoje()?"today":""}">${NOMES[d.dow]}</span></div>`).join("")}</div>
     <div class="row between" style="margin-top:12px"><span class="small muted"><b class="mono" style="color:var(--text)">${tot} min</b> de ${meta} min na semana · hoje ${hj} min</span></div>
     <div class="row" style="margin-top:10px;gap:8px"><span class="tiny dim">Registrar treino de hoje:</span>${[10,20,30,45].map(n => `<button class="btn sm" data-treino="${n}">+${n} min</button>`).join("")}${hj ? `<button class="btn sm ghost" data-treino="0">desfazer hoje</button>` : ""}</div>
-    <div class="tiny dim" style="margin-top:8px">1 xp por minuto, até ${XP_TREINO_DIA} xp por dia.</div></section>
+    <div class="tiny dim" style="margin-top:8px"><span class="xtag hb">hobby</span> 1 xp de hobby por minuto, até ${XP_TREINO_DIA} por dia. Não muda o cargo. · Total de hobby: <b class="mono" style="color:var(--amber)">${xpHobby()} xp</b></div></section>
    <section class="card"><h2 style="margin-bottom:12px">Acordes</h2><div class="chords">${ACORDES.map(a => { const s2 = v.acordes[a] || 0; return `<button class="cd s${s2}" data-acorde="${esc(a)}" aria-label="${esc(a)}: ${["ainda não","treinando","domino"][s2]}">${esc(a)}</button>`; }).join("")}</div>
     <p class="tiny dim" style="margin-top:12px">Toque para mudar: <span style="color:var(--dim)">●</span> ainda não → <span style="color:var(--amber)">●</span> treinando → <span style="color:var(--green)">●</span> domino (+${XP_ACORDE} xp)</p></section>
   </div>
@@ -788,8 +799,8 @@ function abrirLivro(id){
   s.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true" aria-label="${esc(l.titulo)}">
    <div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">${capaLivro(l, true)}<div style="min-width:0;flex:1"><h2>${esc(l.titulo)}</h2><div class="small muted">${esc(l.autor||"")}${l.tema ? " · " + esc(l.tema) : ""}</div>${l.origem ? `<div class="tiny dim" style="margin-top:4px">${esc(l.origem)}</div>` : ""}
     <div class="stars5" style="margin-top:10px">${[1,2,3,4,5].map(n => `<button data-bnota="${esc(l.id)}:${n}" aria-label="${n} estrelas" class="${n<=l.nota?"on":""}">★</button>`).join("")}</div></div></div>
-   <div class="seg">${Object.entries(BST).map(([k,t]) => `<button data-bst="${esc(l.id)}:${k}" aria-pressed="${l.status===k}">${t}</button>`).join("")}<button data-bfav="${esc(l.id)}" aria-pressed="${!!l.fav}">★ favorito</button></div>
-   <div class="row" style="gap:8px"><label class="tiny dim">Página <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pag||""}" data-bpag="${esc(l.id)}"></label><label class="tiny dim">de <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pags||""}" data-bpags="${esc(l.id)}"></label>${l.status==="lido" ? `<span class="tiny okc">terminado ${l.fim ? fmtData(l.fim) : ""} · +${XP_LIVRO} xp</span>` : ""}</div>
+   <div class="seg">${Object.entries(BST).map(([k,t]) => `<button data-bst="${esc(l.id)}:${k}" aria-pressed="${l.status===k}">${t}</button>`).join("")}<button data-bfav="${esc(l.id)}" aria-pressed="${!!l.fav}">★ favorito</button><button data-barea="${esc(l.id)}" aria-pressed="${!!l.area}" title="Livro de tecnologia, programação, design ou negócios do estúdio">${l.area ? "da área · conta na carreira" : "fora da área · hobby"}</button></div>
+   <div class="row" style="gap:8px"><label class="tiny dim">Página <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pag||""}" data-bpag="${esc(l.id)}"></label><label class="tiny dim">de <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pags||""}" data-bpags="${esc(l.id)}"></label>${l.status==="lido" ? `<span class="tiny okc">terminado ${l.fim ? fmtData(l.fim) : ""} · +${XP_LIVRO} xp ${l.area ? "de carreira" : "de hobby"}</span>` : ""}</div>
    <div><span class="k">Frases que marcaram</span>${(l.frases||[]).map((f,i) => `<div class="note row between" style="flex-wrap:nowrap"><span>“${esc(f)}”</span><button class="btn sm ghost" data-bfdel="${esc(l.id)}:${i}" aria-label="Apagar frase">✕</button></div>`).join("")}
     <form class="row" data-bfrase="${esc(l.id)}" style="gap:8px;margin-top:8px"><input class="input" placeholder="Escreva uma frase do livro com as suas palavras" maxlength="280" style="flex:1;min-width:0"><button class="btn sm">Salvar</button></form></div>
    <div><span class="k">Minhas anotações</span><textarea class="input" rows="4" data-bnotas="${esc(l.id)}" placeholder="O que eu aprendi e o que vou aplicar" style="width:100%;margin-top:8px">${esc(l.notas||"")}</textarea></div>
@@ -816,6 +827,7 @@ document.addEventListener("click", e => {
   const L = id => S.livros.find(b => b.id === id);
   if (d.bnota){ const [id, n] = d.bnota.split(":"); const l = L(id); l.nota = l.nota === +n ? 0 : +n; persist(); abrirLivro(id); return; }
   if (d.bst){ const [id, st] = d.bst.split(":"); const l = L(id); act(() => { l.status = st; if (st === "lido"){ l.fim = l.fim || hoje(); if (l.pags) l.pag = l.pags; } else delete l.fim; }, "livro", st === "lido" ? `Biblioteca · terminei ${l.titulo}` : null, e); abrirLivro(id); return; }
+  if (d.barea){ const l = L(d.barea); act(() => { l.area = !l.area; }, "livro", null, e); abrirLivro(l.id); return; }
   if (d.bfav){ const l = L(d.bfav); l.fav = !l.fav; persist(); abrirLivro(l.id); return; }
   if (d.bfdel){ const [id, i] = d.bfdel.split(":"); L(id).frases.splice(+i, 1); persist(); abrirLivro(id); return; }
   if (d.bdel){ if (t.dataset.confirm !== "1"){ t.dataset.confirm = "1"; t.textContent = "Toque de novo para remover"; return; } act(() => { S.livros = S.livros.filter(b => b.id !== d.bdel); }, "livro", null); fecharModal(); render(true); return; }
