@@ -19,8 +19,8 @@ const HOST = location.hostname.endsWith(".github.io") ? location.hostname.split(
 const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split("/").filter(Boolean)[0] || "evolution-lab") : "evolution-lab";
 
 /* ===================== estado ===================== */
-function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}, ext:{}, violao:{treinos:{}, acordes:{}, musicas:[], meta:120}, livros:[]}; }
-function norm(o){ const b = blank(); const s = Object.assign(b, o||{}); s.fac = Object.assign(blank().fac, s.fac||{}); s.fac.discs = s.fac.discs||[]; s.log = s.log||[]; s.bonus = s.bonus||{}; s.chefes = s.chefes||{}; s.cfg = Object.assign(blank().cfg, s.cfg||{}); s.ext = s.ext||{}; s.violao = Object.assign(blank().violao, s.violao||{}); s.livros = s.livros||[]; delete s.pin; return s; }
+function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}, ext:{}, violao:{treinos:{}, acordes:{}, musicas:[], meta:120}, livros:[], desafios:{}}; }
+function norm(o){ const b = blank(); const s = Object.assign(b, o||{}); s.fac = Object.assign(blank().fac, s.fac||{}); s.fac.discs = s.fac.discs||[]; s.log = s.log||[]; s.bonus = s.bonus||{}; s.chefes = s.chefes||{}; s.cfg = Object.assign(blank().cfg, s.cfg||{}); s.ext = s.ext||{}; s.violao = Object.assign(blank().violao, s.violao||{}); s.livros = s.livros||[]; s.desafios = s.desafios||{}; delete s.pin; return s; }
 let S = norm(lsGet("ea-state"));
 
 /* ===================== cripto ===================== */
@@ -122,7 +122,7 @@ function xpTotal(){
   Object.values(S.chefes).forEach(v => { if (v) x += 50; });
   S.fac.discs.forEach(d => { const m = media(d); if (m !== null && m >= S.fac.min) x += 200; (d.topicos||[]).forEach(t => { if (t.ok) x += 10; }); (d.entregas||[]).forEach(t => { if (t.ok) x += 30; }); });
   x += Object.keys(S.bonus).length * 50;
-  x += xpExtra();
+  x += xpExtra() + xpDesafios(true);
   return x;
 }
 const RANKS = [[0,"Estagiário"],[300,"Trainee"],[800,"Júnior I"],[1500,"Júnior II"],[2500,"Pleno I"],[3800,"Pleno II"],[5400,"Sênior"],[7400,"Staff"],[10000,"Principal"]];
@@ -139,22 +139,23 @@ function streak(){
   for (let guard = 0; guard < 400; guard++){ const k = iso(d); if (at[k]) c++; else if (d.getDay() !== 5) break; d.setDate(d.getDate()-1); }
   return c;
 }
-function feitoHoje(kinds){ const h = hoje(); return S.log.some(l => l.d === h && kinds.includes(l.k) && (l.xp||0) > 0); }
+function feitoHoje(kinds){ const h = hoje(); return S.log.some(l => l.d === h && kinds.includes(l.k) && ((l.xp||0) > 0 || l.k === "retry" || l.k === "desafio")); }
 const proxClaude = () => CURSO_CLAUDE.find(x => !(S.claude[x.id] && S.claude[x.id].done));
 const proxProg = () => PROG_AULAS.find(([n]) => !(S.prog[n] && S.prog[n].done));
+function piorAula(){ const feitas = CURSO_CLAUDE.filter(x => !x.tipo && S.claude[x.id] && S.claude[x.id].done); if (!feitas.length) return null; return feitas.slice().sort((a,b) => pct(S.claude[a.id]) - pct(S.claude[b.id]) || (S.claude[a.id].at||0) - (S.claude[b.id].at||0))[0]; }
 function missoesDia(){
-  const dow = new Date().getDay(), pc = proxClaude(), pp = proxProg();
+  const dow = new Date().getDay(), pc = proxClaude(), pp = proxProg(), pa = piorAula();
   const fac = S.fac.discs.flatMap(d => (d.topicos||[]).filter(t => !t.ok).map(t => ({d, t})))[0];
-  const list = [];
-  if (dow === 5) return {rest:true, list:[{k:["claude","prog","fac","retry"], ic:"star", t:"Missão livre (opcional)", s:"Hoje é dia de descanso. Se bater vontade, qualquer atividade vale.", href:"#hoje", xp:"+50"}]};
+  const list = [], dd = S.desafios["dia:" + hoje()];
+  if (dow === 5) return {rest:true, list:[{k:["claude","prog","fac","retry","desafio"], ic:"star", t:"Missão livre (opcional)", s:"Hoje é dia de descanso. Se bater vontade, o Desafio do dia vale.", href:"#desafio-dia", xp:"+50"}]};
   if (feitoHoje(["claude"])) list.push({k:["claude"], ic:"ia", t:"Curso de Claude", s:"Aula de hoje concluída", href:"#claude", xp:"+150"});
   else if (pc) list.push({k:["claude"], ic:"ia", t:`Curso de Claude: ${nomeItem(pc)}`, s:pc.titulo, href:`#aula-${pc.id}`, xp:"+150"});
   if (dow >= 1 && dow <= 4 && feitoHoje(["prog"])) list.push({k:["prog"], ic:"code", t:"Programação", s:"Aula de hoje concluída", href:"#prog", xp:"+100"});
-  else if (dow >= 1 && dow <= 4 && pp) list.push({k:["prog"], ic:"code", t:`Programação: Aula ${pp[0]}`, s:pp[2], href:"#prog", xp:"+100"});
+  else if (dow >= 1 && dow <= 4 && pp) list.push({k:["prog"], ic:"code", t:`Programação: Aula ${pp[0]}`, s:pp[2], href:`#prog-${pp[0]}`, xp:"+100"});
   if (fac) list.push({k:["fac"], ic:"fac", t:`Faculdade: ${fac.t.t}`, s:fac.d.nome, href:"#fac", xp:"+10"});
-  else if (Object.keys(S.claude).length) list.push({k:["retry"], ic:"bolt", t:"Revisão relâmpago", s:"Refaça o quiz de uma aula que você já fez", href:"#claude", xp:"+XP"});
-  else if (dow === 0 || dow === 6) list.push({k:["claude","prog"], ic:"bolt", t:"Bônus de fim de semana", s:"Conclua mais uma atividade qualquer", href:"#claude", xp:"+XP"});
-  return {rest:false, list};
+  list.push({k:["desafio"], ic:"sword", t:"Desafio do dia", s: dd && dd.done ? `Feito: ${dd.best}/${dd.total}` : "6 perguntas sorteadas da sua carreira", href:"#desafio-dia", xp:"+40"});
+  if (pa) list.push({k:["retry"], ic:"bolt", t:"Revisão relâmpago", s:`Refaça o quiz de ${nomeItem(pa)}: ${pa.titulo}`, href:`#aula-${pa.id}-quiz`, xp:"+XP"});
+  return {rest:false, list:list.slice(0, 4)};
 }
 function missoesCompletas(){ const m = missoesDia(); return m.list.length && m.list.every(q => feitoHoje(q.k)); }
 
@@ -283,11 +284,11 @@ const crestSVG = () => { const p = "cr" + (++_crestN); return `<svg class="crest
 const CREST_BIG = crestSVG();
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["arena","Desafios","sword"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
 const NAV_GRUPO = {claude:"Carreira", "curso-arte":"Hobbies", perfil:""};
-const NAV_TAB = ["hoje","cursos","violao","livros","perfil"];
+const NAV_TAB = ["hoje","cursos","arena","violao","perfil"];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
-const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : r === "curso-violao" || r === "curso-ls1" || r === "curso-ls3" ? "violao" : r.startsWith("curso-") ? "cursos" : "hoje";
+const secao = r => r.startsWith("aula-") ? "claude" : r.startsWith("prog-") ? "prog" : r.startsWith("desafio-") ? "arena" : NAV.some(n => n[0] === r) ? r : r === "curso-violao" || r === "curso-ls1" || r === "curso-ls3" ? "violao" : r.startsWith("curso-") ? "cursos" : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
   <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
@@ -465,6 +466,7 @@ function viewProg(){
     ${pp ? `<div class="row"><button class="btn gold" data-sheet="${pp[0]}">${ICO.arrow} Próxima: Aula ${pp[0]}</button></div>` : ""}</div>
    <div class="stack" style="gap:12px">${PROG_FASES.map(f => { const its = PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate), d = its.filter(a => S.prog[a[0]] && S.prog[a[0]].done).length; return `<div><div class="row between"><b>${f.nome}</b><span class="small dim num">${d}/${its.length}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(d/its.length*100)}%"></i></div></div>`; }).join("")}</div>
   </div></section>
+  ${arenaMini("prog")}
   ${vazio ? `<section class="card row between"><div style="min-width:0;flex:1"><b>Já começou este curso?</b><p class="small muted" style="margin:4px 0 0">Pelo diário de bordo, as aulas 0 a 5 estão feitas (quizzes 5/5, 4/8, 6/7, 5/7, 4/7 e 4/8).</p></div><button class="btn gold" data-import-hist="1">Importar histórico</button></section>` : ""}
   <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:20px;height:20px;vertical-align:-4px;color:var(--red)'")} Bugs a corrigir</h3><span class="small dim mono">seus pontos fracos · +50 xp cada</span></div>
    <div class="stack" style="gap:10px;margin-top:14px">${PROG_PONTOS_FRACOS.map((p,k) => { const dead = !!S.chefes[k]; return `<button class="boss ${dead?"dead":""}" data-boss="${k}" aria-pressed="${dead}"><span class="tick" aria-checked="${dead}"></span><span class="hp"><span class="t" style="font-weight:800;display:block">${esc(p)}</span><span class="bar" style="height:7px;margin-top:8px;display:block"><i style="width:${dead?0:100}%;background:linear-gradient(90deg,#F87171,#F472B6)"></i></span></span><span class="tiny dim mono">${dead?"corrigido":"aberto"}</span></button>`; }).join("")}</div></section>
@@ -502,6 +504,7 @@ function viewFac(){
     ${evs.length ? evs.map(e => { const dd = dias(e.data); const [y,m,d] = e.data.split("-"); return `<div class="ev"><div class="d">${+d}<small>${MESES[+m-1]}</small></div><div style="min-width:0;flex:1"><b>${esc(e.t)}</b><div class="small muted">${esc(e.disc)}</div></div><span class="tag ${dd<=3?"bad":"fc"}">${dd<0?"atrasada":dd===0?"hoje":dd===1?"amanhã":"em "+dd+" dias"}</span></div>`; }).join("") : `<p class="small muted" style="margin:10px 0 0">Nada marcado. Adicione provas dentro de cada disciplina.</p>`}</div>
   </div></section>
   ${portalCard()}
+  ${arenaMini("fac")}
   <section class="card stack" style="gap:14px"><div class="row between"><b>Período</b><div class="chips">${[1,2,3,4,5,6,7,8].map(k => `<button class="chip" aria-pressed="${sem===k}" data-sem="${k}">${k}º</button>`).join("")}</div></div>
    <form class="row" id="add-disc" style="align-items:flex-end"><label class="field" style="flex:1;min-width:200px">Nova disciplina do ${sem}º período<input id="disc-nome" placeholder="Algoritmos e lógica de programação" autocomplete="off"></label><button class="btn gold" type="submit">${ICO.plus} Adicionar</button></form>
    <div class="err" id="disc-err" role="alert"></div>
@@ -629,7 +632,10 @@ function medalhas(){
    ["Fase CSS","Concluir aulas 9 a 24", PROG_AULAS.filter(a => a[0] >= 9 && a[0] <= 24).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#22D3EE"],
    ["BLESSAINT 1.0","Concluir a Aula 50", !!(S.prog[50] && S.prog[50].done), "#22D3EE"],
    ["Aprovado","Ficar acima da média numa disciplina", fs.ap >= 1, "#F472B6"],
-   ["Missão cumprida","Completar as missões de um dia", Object.keys(S.bonus).length >= 1, "#34D399"]
+   ["Missão cumprida","Completar as missões de um dia", Object.keys(S.bonus).length >= 1, "#34D399"],
+   ["Caçador","Derrotar o primeiro chefão da arena", DKEYS.some(k => dStats(k).boss), "#F87171"],
+   ["Estrela da arena","Ganhar 3 estrelas numa fase de cada curso", DKEYS.every(k => DESAFIOS[k].fases.some((_,fi) => dStars(dRec(k+":"+fi)) === 3)), "#22D3EE"],
+   ["Constante","Fazer 7 desafios do dia", Object.keys(S.desafios).filter(k => k.startsWith("dia:") && S.desafios[k].done).length >= 7, "#F59E0B"]
   ];
 }
 function medalSVG(cor, on){ return `<svg class="m" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" fill="${on?cor:"#1E2533"}" opacity="${on?.2:1}"/><circle cx="26" cy="26" r="17" fill="${on?cor:"#171D2B"}"/><path d="M26 15l3.2 6.6 7.2 1-5.2 5.1 1.2 7.2L26 31.5l-6.4 3.4 1.2-7.2-5.2-5.1 7.2-1z" fill="${on?"#0B0E14":"#3A4570"}"/></svg>`; }
@@ -672,11 +678,15 @@ function render(keep){
   const r = rota(), s = secao(r);
   $$("[data-nav]").forEach(a => a.dataset.nav === s ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
   const y = scrollY;
-  const v = r.startsWith("aula-") ? viewAula(r.slice(5)) : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : r === "fac" ? viewFac() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
+  const aq = r.startsWith("aula-") && r.endsWith("-quiz"), aid = aq ? r.slice(5, -5) : r.slice(5);
+  const dk = r === "desafio-dia" ? "dia:" + hoje() : r.startsWith("desafio-") ? r.slice(8).replace(/-(\d+|boss)$/, ":$1") : null;
+  const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProg() : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : r === "fac" ? viewFac() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
   $("#view").innerHTML = v;
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
   if (keep) scrollTo(0, y);
-  document.title = (r.startsWith("aula-") ? (CURSO_CLAUDE.find(x => x.id === r.slice(5))||{}).titulo + " · " : "") + "Evolution Lab";
+  if (aq && !keep){ QZ[aid] = {i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0}; repintarQuiz(aid); setTimeout(() => { const z = $("#quiz"); z && z.scrollIntoView({block:"start"}); }, 60); }
+  if (r.startsWith("prog-") && !keep && PROG_AULAS.some(a => String(a[0]) === r.slice(5))) setTimeout(() => abrirSheet(r.slice(5)), 30);
+  document.title = (r.startsWith("aula-") ? ((CURSO_CLAUDE.find(x => x.id === aid)||{}).titulo || "Aula") + " · " : "") + "Evolution Lab";
 }
 let lastR = null;
 addEventListener("hashchange", () => { if (!SESS && !LOCAL) return; const r = rota(); if (r !== lastR){ lastR = r; fecharModal(); render(); scrollTo(0,0); } });
@@ -715,6 +725,7 @@ function xpHobby(){
   Object.values(v.acordes).forEach(s => { if (s === 2) x += XP_ACORDE; });
   v.musicas.forEach(m => { if (m.st === "d") x += XP_MUSICA; });
   S.livros.forEach(l => { if (l.status === "lido" && !l.area) x += XP_LIVRO; });
+  x += xpDesafios(false);
   return x;
 }
 function semearExt(){
@@ -769,6 +780,7 @@ function viewCurso(id){
     <div class="row" style="margin-top:14px">${px ? `<a class="btn gold" href="${esc(pxURL)}" target="_blank" rel="noopener">▶ Continuar: ${esc(px.t)}</a>` : `<span class="tag ok">curso concluído</span>`}<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir na ${esc(c.plat)} ↗</a></div></section>
    <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos</div><div class="tiny dim" style="margin-top:6px">${!cursoCar(c) ? `<span class="xtag hb">hobby</span> aula +${XP_EXT_AULA} · módulo +${XP_EXT_MOD} em XP de hobby, não muda o cargo` : `<span class="xtag car">carreira</span> ${c.car.length} de ${c.mods.length} módulos sobem o cargo (+${XP_EXT_AULA} por aula, +${XP_EXT_MOD} por módulo). Os outros contam como hobby.`}</div></div></section>
   </div>
+  ${arenaMini(c.id === "ls1" || c.id === "ls3" ? "violao" : c.id)}
   <div>${mods}</div>
   <p class="tiny dim">Assistiu lá? Marque aqui. O vídeo e o material continuam na ${esc(c.plat)}; aqui fica o seu progresso.</p>
   </div>`;
@@ -794,6 +806,7 @@ function viewViolao(){
    <section class="card"><h2 style="margin-bottom:12px">Acordes</h2><div class="chords">${ACORDES.map(a => { const s2 = v.acordes[a] || 0; return `<button class="cd s${s2}" data-acorde="${esc(a)}" aria-label="${esc(a)}: ${["ainda não","treinando","domino"][s2]}">${esc(a)}</button>`; }).join("")}</div>
     <p class="tiny dim" style="margin-top:12px">Toque para mudar: <span style="color:var(--dim)">●</span> ainda não → <span style="color:var(--amber)">●</span> treinando → <span style="color:var(--green)">●</span> domino (+${XP_ACORDE} xp)</p></section>
   </div>
+  ${arenaMini("violao")}
   <section class="card"><div class="row between"><div>${platTag("Hotmart")}<h2 style="margin-top:8px">Violão Academy</h2></div><span class="mono">${vs.d}/${vs.t} · ${Math.round(vs.p*100)}%</span></div>
    <div class="bar" style="margin:12px 0 4px"><i style="width:${Math.round(vs.p*100)}%"></i></div>
    ${mvs.map(([m,mi,f]) => `<div class="song"><span class="st ${f?"a":"q"}">${Math.round(f/modTot(m)*100)}%</span><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><span class="tiny dim" style="display:block">${f}/${modTot(m)} aulas${vp && vp.mi === mi ? " · você parou aqui" : ""}</span></span><button class="btn sm" data-extm="violao:${mi}:1">+1 aula</button></div>`).join("")}
@@ -875,6 +888,104 @@ document.addEventListener("change", e => {
   if (d.bpag){ const l = L(d.bpag); l.pag = Math.max(0, parseInt(t.value,10) || 0); if (l.pags && l.pag > l.pags) l.pag = l.pags; if (l.status === "quero" && l.pag) l.status = "lendo"; persist(); return; }
   if (d.bpags){ const l = L(d.bpags); l.pags = Math.max(0, parseInt(t.value,10) || 0); persist(); return; }
   if (d.bnotas){ const l = L(d.bnotas); l.notas = t.value.slice(0, 4000); persist(); return; }
+});
+
+/* ===================== ARENA DE DESAFIOS ===================== */
+const DKEYS = Object.keys(DESAFIOS);
+const dRec = k => S.desafios[k];
+const dPct = r => r && r.total ? r.best / r.total : 0;
+const dStars = r => !r || !r.done ? 0 : dPct(r) >= .9 ? 3 : dPct(r) >= .7 ? 2 : 1;
+const bossAberto = ck => DESAFIOS[ck].fases.every((_,fi) => dRec(ck+":"+fi) && dRec(ck+":"+fi).done);
+function dXP(k, r){ if (!r || !r.done) return 0; const boss = k.endsWith(":boss"), dia = k.startsWith("dia:"); const p = dPct(r);
+  return (dia ? 40 + Math.round(30*p) : boss ? 80 + Math.round(70*p) : 30 + Math.round(30*p)) + ((r.combo||0) >= 5 ? 10 : 0); }
+function dCarreira(k){ if (k.startsWith("dia:")) return true; const ck = k.split(":")[0]; return !!(DESAFIOS[ck] && DESAFIOS[ck].carreira); }
+function xpDesafios(carreira){ let x = 0; Object.entries(S.desafios||{}).forEach(([k,r]) => { if (dCarreira(k) === carreira) x += dXP(k, r); }); return x; }
+function dStats(ck){ const c = DESAFIOS[ck]; let st = 0; c.fases.forEach((_,fi) => st += dStars(dRec(ck+":"+fi))); const b = dRec(ck+":boss"); return {st, max: c.fases.length*3, boss: b && b.done && dPct(b) >= .7, bossTry: !!(b && b.done)}; }
+function rngSeed(seed){ let h = hash32(seed) || 1; return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h>>>0) % 100000) / 100000; }; }
+function embaralhar(a, r){ a = a.slice(); for (let i=a.length-1;i>0;i--){ const j = Math.floor(r()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function perguntasDia(d){
+  const pool = [];
+  DKEYS.filter(k => DESAFIOS[k].carreira).forEach(k => DESAFIOS[k].fases.forEach((f,fi) => f.q.forEach(q => pool.push({q, de: `${DESAFIOS[k].nome} · ${f.t}`}))));
+  CURSO_CLAUDE.forEach(x => { if (S.claude[x.id] && S.claude[x.id].done && !x.tipo) x.quiz.forEach(q => pool.push({q, de: `Claude · ${nomeItem(x)}`})); });
+  return embaralhar(pool, rngSeed("dia" + d)).slice(0, 6);
+}
+/* monta a partida: fase normal, chefão (10 aleatórias, 3 vidas) ou desafio do dia (6 do dia) */
+function dMontar(k){
+  if (k.startsWith("dia:")) return {titulo:"Desafio do dia", sub:"6 perguntas de tudo que é da sua carreira", itens: perguntasDia(k.slice(4)), vidas:0};
+  const [ck, fs] = k.split(":"), c = DESAFIOS[ck];
+  if (fs === "boss"){ const all = c.fases.flatMap(f => f.q.map(q => ({q, de:f.t}))); return {titulo:`Chefão · ${c.nome}`, sub:"10 perguntas sorteadas de todas as fases. 3 vidas: errou, perde uma.", itens: embaralhar(all, Math.random).slice(0, 10), vidas:3}; }
+  const f = c.fases[+fs]; return {titulo:`${c.nome} · ${f.t}`, sub:f.sub, itens: f.q.map(q => ({q, de:f.t})), vidas:0};
+}
+let DQ = null;
+function viewArena(){
+  const dia = "dia:" + hoje(), rd = dRec(dia), xc = xpDesafios(true), xh = xpDesafios(false);
+  return `<div class="stack fade">
+  <div><span class="k">Arena · exercícios de todos os cursos</span><h1 style="margin-top:6px">Desafios</h1><p class="muted" style="margin-top:4px">Fases com estrelas, combo e um chefão no fim de cada curso. Exercícios criados a partir do tema de cada módulo.</p></div>
+  <div class="stats3 s4" style="max-width:760px"><div class="stat"><div class="k">estrelas</div><div class="v num" style="color:var(--cyan)">${DKEYS.reduce((a,k) => a + dStats(k).st, 0)}<small>/${DKEYS.reduce((a,k) => a + dStats(k).max, 0)}</small></div></div><div class="stat"><div class="k">chefões</div><div class="v num">${DKEYS.filter(k => dStats(k).boss).length}<small>/${DKEYS.length}</small></div></div><div class="stat"><div class="k">xp carreira</div><div class="v num">${xc}</div></div><div class="stat"><div class="k">xp hobby</div><div class="v num" style="color:var(--amber)">${xh}</div></div></div>
+  <a class="card dday" href="#desafio-dia"><span class="ico2" style="color:var(--amber)">${ICO.bolt}</span><span style="flex:1;min-width:0"><b>Desafio do dia</b><span class="tiny dim" style="display:block">${rd && rd.done ? `feito hoje · ${rd.best}/${rd.total} · volte amanhã para um novo` : "6 perguntas sorteadas de Claude, Programação, Faculdade e Design · +40 a +80 xp"}</span></span>${rd && rd.done ? starRow(dStars(rd), 16) : `<span class="btn sm gold">Jogar</span>`}</a>
+  ${DKEYS.map(arenaCurso).join("")}
+  </div>`;
+}
+function arenaCurso(ck){
+  const c = DESAFIOS[ck], s = dStats(ck), ab = bossAberto(ck), b = dRec(ck+":boss");
+  return `<section class="card arena"><div class="row between"><div style="min-width:0"><span class="xtag ${c.carreira?"car":"hb"}">${c.carreira?"carreira":"hobby"}</span><h2 style="margin-top:6px">${esc(c.nome)}</h2><span class="tiny dim">${esc(c.sub)}</span></div><span class="mono" style="color:${c.cor}">★ ${s.st}/${s.max}</span></div>
+   <div class="fases">${c.fases.map((f,fi) => { const r = dRec(ck+":"+fi); return `<a class="fase ${r && r.done ? "ok" : ""}" href="#desafio-${ck}-${fi}"><span class="fn mono">${fi+1}</span><span style="flex:1;min-width:0"><b>${esc(f.t)}</b><span class="tiny dim" style="display:block">${f.q.length} perguntas${r && r.done ? ` · melhor ${r.best}/${r.total}` : ""}</span></span>${starRow(dStars(r), 14)}</a>`; }).join("")}
+    <a class="fase boss ${ab?"":"lock"} ${s.boss?"ok":""}" href="${ab ? `#desafio-${ck}-boss` : `#arena`}" ${ab ? "" : `aria-disabled="true"`}><span class="fn">${ab ? ICO.sword : ICO.lock}</span><span style="flex:1;min-width:0"><b>Chefão</b><span class="tiny dim" style="display:block">${ab ? (b && b.done ? `melhor ${b.best}/${b.total}${s.boss ? " · derrotado" : " · tente de novo"}` : "10 perguntas, 3 vidas") : "complete todas as fases para liberar"}</span></span>${b && b.done ? starRow(dStars(b), 14) : ""}</a></div></section>`;
+}
+function arenaMini(ck){
+  const c = DESAFIOS[ck]; if (!c) return ""; const s = dStats(ck), prox = c.fases.findIndex((_,fi) => !(dRec(ck+":"+fi) && dRec(ck+":"+fi).done));
+  return `<a class="card dday" href="${prox >= 0 ? `#desafio-${ck}-${prox}` : bossAberto(ck) && !s.boss ? `#desafio-${ck}-boss` : "#arena"}"><span class="ico2" style="color:${c.cor}">${ICO.sword}</span><span style="flex:1;min-width:0"><b>Desafios de ${esc(c.nome)}</b><span class="tiny dim" style="display:block">${c.fases.length} fases + chefão · ★ ${s.st}/${s.max}${s.boss ? " · chefão derrotado" : ""}</span></span><span class="btn sm gold">${prox >= 0 ? `Fase ${prox+1}` : s.boss ? "Arena" : "Chefão"}</span></a>`;
+}
+function viewDesafio(k){
+  if (!k) return viewArena();
+  if (!k.startsWith("dia:")){ const [ck, fs] = k.split(":"); if (!DESAFIOS[ck] || (fs !== "boss" && !DESAFIOS[ck].fases[+fs])) return viewArena(); if (fs === "boss" && !bossAberto(ck)) return viewArena(); }
+  const back = k.startsWith("dia:") ? "#arena" : "#arena";
+  return `<div class="stack fade" style="max-width:760px">
+   <a class="back" href="${back}">${ICO.back} Desafios</a>
+   <div id="dbox">${desafioHTML(k)}</div></div>`;
+}
+function desafioHTML(k){
+  const r = dRec(k), car = dCarreira(k);
+  if (!DQ || DQ.k !== k){
+    const m = dMontar(k);
+    return `<div class="quiz" style="text-align:center"><span class="xtag ${car?"car":"hb"}">${car?"xp de carreira":"xp de hobby"}</span><h2 style="margin:10px 0 6px">${esc(m.titulo)}</h2><p class="muted small">${esc(m.sub)}</p>
+     <p class="small" style="margin:10px 0 14px">${r && r.done ? `Melhor: <b class="num" style="color:var(--cyan)">${r.best}/${r.total}</b> ${starRow(dStars(r),14)}` : `${m.itens.length} perguntas · combo de 5 = +10 xp`}</p>
+     ${k.startsWith("dia:") && r && r.done ? `<p class="small muted">Você já fez o de hoje. Pode jogar de novo para treinar; vale a melhor nota.</p>` : ""}
+     <button class="btn gold" data-dstart="${k}">${r && r.done ? "Jogar de novo" : "Começar"}</button></div>`;
+  }
+  const q = DQ;
+  if (q.fim){
+    const right = q.res.filter(Boolean).length, n = q.res.length, tot = q.itens.length, p = right/tot, st = !q.vivo ? 0 : p >= .9 ? 3 : p >= .7 ? 2 : 1;
+    return `<div class="quiz result"><div class="bigstars">${[1,2,3].map(i => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" fill="${i<=st?"#22D3EE":"rgba(255,255,255,.12)"}"/></svg>`).join("")}</div>
+     <h2>${!q.vivo ? "As vidas acabaram" : right === tot ? "Gabarito!" : p >= .7 ? (q.vidas0 ? "Chefão derrotado" : "Fase concluída") : "Revise e tente de novo"}</h2>
+     <div class="row" style="justify-content:center;gap:24px"><div><div class="xpgain num">${right}/${tot}</div><div class="tiny dim">acertos</div></div><div><div class="xpgain num">${q.gain > 0 ? "+"+q.gain : "+0"}</div><div class="tiny dim">${car?"xp":"xp hobby"}</div></div><div><div class="xpgain num" style="color:var(--fire)">${q.maxCombo}</div><div class="tiny dim">maior combo</div></div></div>
+     ${q.erros.length ? `<div class="card" style="text-align:left;background:var(--bg2)"><b class="small">Para revisar</b>${q.erros.map(e => `<p class="small muted" style="margin:8px 0 0">• ${esc(e[0])} <span style="color:var(--green)">→ ${esc(e[1])}</span></p>`).join("")}</div>` : ""}
+     <div class="row" style="justify-content:center"><button class="btn gold" data-dstart="${k}">Jogar de novo</button><a class="btn" href="#arena">Voltar à arena</a></div></div>`;
+  }
+  const it = q.itens[q.i].q, ord = ordem(k + ":" + q.i, q.i, it[1].length);
+  return `<div class="quiz"><div class="row between" style="flex-wrap:nowrap;gap:14px"><div class="qprog" style="flex:1">${q.itens.map((_,j) => `<i class="${j<q.i ? (q.res[j]?"ok":"bad") : j===q.i ? "cur" : ""}"></i>`).join("")}</div>${q.vidas0 ? `<span class="vidas" aria-label="${q.vidas} vidas">${[1,2,3].map(v => `<i class="${v<=q.vidas?"on":""}">♥</i>`).join("")}</span>` : ""}${q.combo >= 2 ? `<span class="combo">${flameMini().replace("<svg","<svg style='width:18px;height:18px'")} ${q.combo}x</span>` : `<span class="small dim num">${q.i+1}/${q.itens.length}</span>`}</div>
+   <span class="tiny dim">${esc(q.itens[q.i].de)}</span>
+   <div class="qtext">${esc(it[0])}</div>
+   ${ord.map(oi => { let cls = ""; if (q.checked){ if (oi === it[2]) cls = "right"; else if (q.pick === oi) cls = "wrong"; } return `<button class="opt ${cls}" role="checkbox" aria-checked="${q.pick===oi}" data-dopt="${oi}" ${q.checked?"disabled":""}><span class="box"></span><span>${esc(it[1][oi])}</span></button>`; }).join("")}
+   ${q.checked ? `<div class="feedback ${q.pick===it[2]?"ok":"bad"}"><div><b>${q.pick===it[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===it[2] ? "" : `Resposta: ${esc(it[1][it[2]])}. `}${esc(it[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===it[2]?"ok":"gold"}" data-dnext="1">${q.i+1 < q.itens.length && !(q.vidas0 && q.vidas <= 0) ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
+     : `<div class="row between" style="margin-top:16px"><span class="err" id="derr" role="alert"></span><button class="btn gold" data-dcheck="1">Verificar</button></div>`}
+  </div>`;
+}
+function repintarD(){ const b = $("#dbox"); if (b && DQ) b.innerHTML = desafioHTML(DQ.k); }
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t || !SESS && !LOCAL) return; const d = t.dataset;
+  if (d.dstart){ const k = d.dstart, m = dMontar(k); DQ = {k, itens:m.itens, i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0, vidas:m.vidas, vidas0:m.vidas, vivo:true, erros:[]}; repintarD(); $("#dbox").scrollIntoView({block:"start", behavior:"smooth"}); return; }
+  if (!DQ) return;
+  if (d.dopt !== undefined){ if (DQ.checked) return; DQ.pick = +d.dopt; $$("#dbox .opt").forEach(o => o.setAttribute("aria-checked", String(o === t))); const er = $("#derr"); if (er) er.textContent = ""; return; }
+  if (d.dcheck){ if (DQ.pick === null){ $("#derr").textContent = "Marque uma opção primeiro."; return; } const it = DQ.itens[DQ.i].q, ok = DQ.pick === it[2];
+    DQ.checked = true; DQ.res[DQ.i] = ok; DQ.combo = ok ? DQ.combo + 1 : 0; DQ.maxCombo = Math.max(DQ.maxCombo, DQ.combo); if (!ok){ DQ.erros.push([it[0], it[1][it[2]]]); if (DQ.vidas0) DQ.vidas--; } som(ok ? "ok" : "bad"); repintarD(); return; }
+  if (d.dnext){ const acabou = DQ.vidas0 && DQ.vidas <= 0;
+    if (DQ.i + 1 < DQ.itens.length && !acabou){ DQ.i++; DQ.pick = null; DQ.checked = false; repintarD(); return; }
+    const k = DQ.k, right = DQ.res.filter(Boolean).length, n = DQ.itens.length; DQ.vivo = !acabou;
+    const prev = dRec(k), ja = !!(prev && prev.done), nome = dMontar(k).titulo;
+    DQ.gain = act(() => { const r = Object.assign({}, S.desafios[k]); if (DQ.vivo){ r.done = true; r.best = Math.max(r.best||0, right); r.total = n; r.combo = Math.max(r.combo||0, DQ.maxCombo); } r.last = right; r.at = Date.now(); r.tent = (r.tent||0) + 1; S.desafios[k] = r; }, "desafio", `${nome}: ${right}/${n}${acabou ? " (sem vidas)" : ""}`, e);
+    if (!dCarreira(k)) DQ.gain = Math.max(0, dXP(k, dRec(k)) - dXP(k, prev));
+    DQ.fim = true; repintarD(); $("#dbox").scrollIntoView({block:"start", behavior:"smooth"}); if (DQ.vivo && right/n >= .7){ confetti(); som("done"); } render(true); return; }
 });
 
 /* ===================== eventos ===================== */
