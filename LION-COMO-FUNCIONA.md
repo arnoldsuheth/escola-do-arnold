@@ -9,6 +9,15 @@ O Lion é um mascote com regras locais de acompanhamento dos estudos. Não há s
 - Lembrete de água a cada 20 minutos e caminhada a cada 60 minutos de uso desta aba visível e em foco.
 - Ícone e janela móveis. A janela abre só por clique. Balões automáticos podem ser desativados.
 - Movimento e rede de partículas podem ser pausados; a preferência de movimento reduzido do aparelho é respeitada.
+- Levitação ampliada, aura de energia e órbita luminosa. Ao abrir a janela, Lion faz uma saudação; a cada resposta de quiz, comemora o acerto ou reage ao erro.
+
+## Sons, voz e retorno dos quizzes
+
+Os tons de acerto, erro, XP e subida de nível continuam disponíveis, assim como a vibração quando suportada pelo navegador. O erro tem um tom descendente e vibração diferente do acerto.
+
+Nos quizzes de Claude e da Arena, as respostas passam a ter falas: “Acertou, miseraviii!!” e “Erroou! Aí cê me quebra!”. São falas sintetizadas com a voz em português disponível no aparelho; não há gravação de uma pessoa nem imitação de uma voz específica. O timbre e a disponibilidade variam conforme navegador/aparelho. O Lion também mostra a frase no balão, e a explicação da resposta continua aparecendo no quiz.
+
+Em Perfil → Ajustes, “Sons e vibração” desliga todo o áudio; “Voz nas respostas” desliga apenas as falas. “Testar acerto” e “Testar erro” permitem conferir sem alterar XP, notas ou progresso. Essas preferências de áudio pertencem à configuração já sincronizada da plataforma. A voz para ao sair para outra aba/app.
 
 ## Relação com o ChatGPT
 

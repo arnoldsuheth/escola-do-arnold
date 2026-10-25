@@ -2,6 +2,10 @@
 
 ## Alterações
 
+- Lion com levitação mais expressiva, aura/orbita e reações ao toque e às respostas. Respeita pausa de movimento e movimento reduzido do aparelho.
+- Botões existentes com acabamento de vidro, reflexo, iluminação no hover e retorno de toque; formato e paleta preservados. Árvores de tecnologia sem alterações.
+- Retorno de acerto e erro mantém os tons/vibrações e acrescenta falas sintetizadas em português nos quizzes Claude e Arena. Controle separado de voz, testes sem XP em Perfil → Ajustes e suporte móvel sem bloquear estudo quando áudio/voz/vibração não estão disponíveis.
+
 - Painel soma Claude, Programação e Academia de Criadores no contador de aulas e detalha a Faculdade por disciplinas, tópicos e entregas.
 - Níveis: Iniciante, Trainee, Júnior I, Júnior II, Pleno I, Pleno II, Sênior, Especialista Técnico e Especialista Sênior.
 - Limites de XP: 0, 1.000, 3.000, 7.000, 14.000, 25.000, 40.000, 65.000 e 100.000.

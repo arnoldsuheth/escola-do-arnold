@@ -19,7 +19,7 @@ const HOST = location.hostname.endsWith(".github.io") ? location.hostname.split(
 const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split("/").filter(Boolean)[0] || "evolution-lab") : "evolution-lab";
 
 /* ===================== estado ===================== */
-function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}, ext:{}, violao:{treinos:{}, acordes:{}, musicas:[], meta:120}, livros:[], desafios:{}}; }
+function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true, fala:true}, ext:{}, violao:{treinos:{}, acordes:{}, musicas:[], meta:120}, livros:[], desafios:{}}; }
 function norm(o){ const b = blank(); const s = Object.assign(b, o||{}); s.fac = Object.assign(blank().fac, s.fac||{}); s.fac.discs = s.fac.discs||[]; s.log = s.log||[]; s.bonus = s.bonus||{}; s.chefes = s.chefes||{}; s.cfg = Object.assign(blank().cfg, s.cfg||{}); s.ext = s.ext||{}; s.violao = Object.assign(blank().violao, s.violao||{}); s.livros = s.livros||[]; s.desafios = s.desafios||{}; delete s.pin; return s; }
 let S = norm(lsGet("ea-state"));
 
@@ -252,11 +252,17 @@ function som(tipo){
   if (!S.cfg.som) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume().catch(() => {});
     const notas = {ok:[660,880], bad:[220,180], xp:[880,1320], up:[523,659,784,1047], done:[523,784,1047]}[tipo] || [600];
     notas.forEach((f,i) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = "sine"; o.frequency.value = f; const t0 = actx.currentTime + i*0.09; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(tipo === "bad" ? 0.04 : 0.07, t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+0.22); o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0+0.25); });
-    if (navigator.vibrate) navigator.vibrate(tipo === "bad" ? [40,40,40] : 25);
   } catch(e){}
+  try { if (navigator.vibrate) navigator.vibrate(tipo === "bad" ? [40,40,40] : 25); } catch(e){}
 }
+function respostaQuiz(ok){
+  som(ok ? "ok" : "bad");
+  if (window.EvoFeedback) window.EvoFeedback.respond(ok,{sound:S.cfg.som,voice:S.cfg.fala!==false});
+}
+function fraseResposta(ok){return `<span class="answer-phrase">${ok ? "Acertou, miseraviii!!" : "Erroou! Aí cê me quebra!"}</span>`;}
 function floatXP(txt, ev){
   const el = document.createElement("div"); el.className = "xp-float"; el.textContent = txt;
   const x = ev && ev.clientX ? ev.clientX : innerWidth/2, y = ev && ev.clientY ? ev.clientY : innerHeight/2;
@@ -500,7 +506,7 @@ function quizHTML(x){
   return `<div class="quiz"><div class="row between" style="flex-wrap:nowrap;gap:14px"><div class="qprog" style="flex:1">${x.quiz.map((_,k) => `<i class="${k<qi ? (q.res[k]?"ok":"bad") : k===qi ? "cur" : ""}"></i>`).join("")}</div>${q.combo >= 2 ? `<span class="combo">${flameMini().replace("<svg","<svg style='width:18px;height:18px'")} ${q.combo}x</span>` : `<span class="small dim num">${qi+1}/${x.quiz.length}</span>`}</div>
    <div class="qtext">${esc(item[0])}</div>
    ${ord.map(oi => { let cls = ""; if (q.checked){ if (oi === item[2]) cls = "right"; else if (q.pick === oi) cls = "wrong"; } return `<button class="opt ${cls}" role="checkbox" aria-checked="${q.pick===oi}" data-opt="${x.id}:${oi}" ${q.checked?"disabled":""}><span class="box"></span><span>${esc(item[1][oi])}</span></button>`; }).join("")}
-   ${q.checked ? `<div class="feedback ${q.pick===item[2]?"ok":"bad"}"><div><b>${q.pick===item[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===item[2] ? "" : `Resposta: ${esc(item[1][item[2]])}. `}${esc(item[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===item[2]?"ok":"gold"}" data-qnext="${x.id}">${qi+1 < x.quiz.length ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
+   ${q.checked ? `<div class="feedback ${q.pick===item[2]?"ok":"bad"}"><div>${fraseResposta(q.pick===item[2])}<b>${q.pick===item[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===item[2] ? "" : `Resposta: ${esc(item[1][item[2]])}. `}${esc(item[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===item[2]?"ok":"gold"}" data-qnext="${x.id}">${qi+1 < x.quiz.length ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
      : `<div class="row between" style="margin-top:16px"><span class="err" id="qerr" role="alert"></span><button class="btn gold" data-qcheck="${x.id}">Verificar</button></div>`}
   </div>`;
 }
@@ -721,6 +727,9 @@ function ajustesHTML(){
    <form class="row" id="f-nome" style="align-items:flex-end"><label class="field" style="flex:1;min-width:180px">Seu nome<input id="nome" value="${esc(S.nome)}"></label><button class="btn" type="submit">Salvar</button></form>
    <div><b class="small">Meta diária de XP</b><div class="chips" style="margin-top:8px">${[50,100,150,200,300].map(v => `<button class="chip" aria-pressed="${S.cfg.meta===v}" data-meta="${v}">${v} XP</button>`).join("")}</div></div>
    <div class="row between"><div><b class="small">Sons e vibração</b><div class="tiny dim">Ao acertar, errar e subir de nível</div></div><button class="chip" aria-pressed="${S.cfg.som}" data-som="1">${S.cfg.som?"Ligado":"Desligado"}</button></div>
+   <div class="row between"><div><b class="small">Voz nas respostas</b><div class="tiny dim">Frases divertidas nos quizzes · voz do aparelho</div></div><button class="chip" aria-pressed="${S.cfg.fala!==false}" data-fala="1">${S.cfg.fala!==false?"Ligada":"Desligada"}</button></div>
+   <div class="sound-tests"><button class="btn sm ok" data-test-feedback="ok" ${!S.cfg.som?"disabled":""}>Testar acerto</button><button class="btn sm" data-test-feedback="bad" ${!S.cfg.som?"disabled":""}>Testar erro</button></div>
+   <p class="tiny dim" style="margin:0">Testes não mudam seu XP. A voz varia conforme o aparelho; som, voz e vibração dependem do suporte do navegador.</p>
    <div class="row between"><div><b class="small">Onde fica salvo</b><div class="tiny dim sync-ind" style="display:flex;gap:8px;align-items:center">${syncHTML()}</div></div><button class="btn sm" data-sync="1">Sincronizar agora</button></div>
    <details><summary style="cursor:pointer;font-weight:800">${ICO.phone.replace("<svg","<svg style='width:18px;height:18px;vertical-align:-3px'")} Instalar como app no celular</summary><ul class="small muted" style="padding-left:1.2em"><li><b>iPhone (Safari):</b> botão Compartilhar → "Adicionar à Tela de Início".</li><li><b>Android (Chrome):</b> menu ⋮ → "Instalar app" ou "Adicionar à tela inicial".</li><li><b>PC (Chrome/Edge):</b> ícone de instalar na barra de endereço.</li></ul></details>
    <details><summary style="cursor:pointer;font-weight:800">${ICO.lock.replace("<svg","<svg style='width:18px;height:18px;vertical-align:-3px'")} Trocar senha</summary><form id="f-senha" class="stack" style="gap:10px;margin-top:12px"><label class="field">Nova senha<input type="password" id="ns1" autocomplete="new-password" minlength="6"></label><label class="field">Repita a nova senha<input type="password" id="ns2" autocomplete="new-password"></label><div class="err" id="ns-err"></div><button class="btn" type="submit">Trocar senha</button></form></details>
@@ -1030,7 +1039,7 @@ function desafioHTML(k){
    <span class="tiny dim">${esc(q.itens[q.i].de)}</span>
    <div class="qtext">${esc(it[0])}</div>
    ${ord.map(oi => { let cls = ""; if (q.checked){ if (oi === it[2]) cls = "right"; else if (q.pick === oi) cls = "wrong"; } return `<button class="opt ${cls}" role="checkbox" aria-checked="${q.pick===oi}" data-dopt="${oi}" ${q.checked?"disabled":""}><span class="box"></span><span>${esc(it[1][oi])}</span></button>`; }).join("")}
-   ${q.checked ? `<div class="feedback ${q.pick===it[2]?"ok":"bad"}"><div><b>${q.pick===it[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===it[2] ? "" : `Resposta: ${esc(it[1][it[2]])}. `}${esc(it[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===it[2]?"ok":"gold"}" data-dnext="1">${q.i+1 < q.itens.length && !(q.vidas0 && q.vidas <= 0) ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
+   ${q.checked ? `<div class="feedback ${q.pick===it[2]?"ok":"bad"}"><div>${fraseResposta(q.pick===it[2])}<b>${q.pick===it[2] ? (q.combo>=3 ? `Combo ${q.combo}x.` : "Correto.") : "Incorreto."}</b> ${q.pick===it[2] ? "" : `Resposta: ${esc(it[1][it[2]])}. `}${esc(it[3])}</div></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ${q.pick===it[2]?"ok":"gold"}" data-dnext="1">${q.i+1 < q.itens.length && !(q.vidas0 && q.vidas <= 0) ? "Continuar" : "Ver resultado"} ${ICO.arrow}</button></div>`
      : `<div class="row between" style="margin-top:16px"><span class="err" id="derr" role="alert"></span><button class="btn gold" data-dcheck="1">Verificar</button></div>`}
   </div>`;
 }
@@ -1040,8 +1049,8 @@ document.addEventListener("click", e => {
   if (d.dstart){ const k = d.dstart, m = dMontar(k); DQ = {k, itens:m.itens, i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0, vidas:m.vidas, vidas0:m.vidas, vivo:true, erros:[]}; repintarD(); $("#dbox").scrollIntoView({block:"start", behavior:"smooth"}); return; }
   if (!DQ) return;
   if (d.dopt !== undefined){ if (DQ.checked) return; DQ.pick = +d.dopt; $$("#dbox .opt").forEach(o => o.setAttribute("aria-checked", String(o === t))); const er = $("#derr"); if (er) er.textContent = ""; return; }
-  if (d.dcheck){ if (DQ.pick === null){ $("#derr").textContent = "Marque uma opção primeiro."; return; } const it = DQ.itens[DQ.i].q, ok = DQ.pick === it[2];
-    DQ.checked = true; DQ.res[DQ.i] = ok; DQ.combo = ok ? DQ.combo + 1 : 0; DQ.maxCombo = Math.max(DQ.maxCombo, DQ.combo); if (!ok){ DQ.erros.push([it[0], it[1][it[2]]]); if (DQ.vidas0) DQ.vidas--; } som(ok ? "ok" : "bad"); repintarD(); return; }
+  if (d.dcheck){ if (DQ.checked) return; if (DQ.pick === null){ $("#derr").textContent = "Marque uma opção primeiro."; return; } const it = DQ.itens[DQ.i].q, ok = DQ.pick === it[2];
+    DQ.checked = true; DQ.res[DQ.i] = ok; DQ.combo = ok ? DQ.combo + 1 : 0; DQ.maxCombo = Math.max(DQ.maxCombo, DQ.combo); if (!ok){ DQ.erros.push([it[0], it[1][it[2]]]); if (DQ.vidas0) DQ.vidas--; } respostaQuiz(ok); repintarD(); return; }
   if (d.dnext){ const acabou = DQ.vidas0 && DQ.vidas <= 0;
     if (DQ.i + 1 < DQ.itens.length && !acabou){ DQ.i++; DQ.pick = null; DQ.checked = false; repintarD(); return; }
     const k = DQ.k, right = DQ.res.filter(Boolean).length, n = DQ.itens.length; DQ.vivo = !acabou;
@@ -1253,8 +1262,8 @@ document.addEventListener("click", e => {
   if (d.intro) return introModal();
   if (d.qstart){ QZ[d.qstart] = {i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0}; repintarQuiz(d.qstart); $("#quiz").scrollIntoView({block:"start", behavior:"smooth"}); return; }
   if (d.opt){ const [id, oi] = d.opt.split(":"); const q = QZ[id]; if (!q || q.checked) return; q.pick = +oi; $$(".opt", $("#quizbox")).forEach(o => o.setAttribute("aria-checked", String(o === t))); const er = $("#qerr"); if (er) er.textContent = ""; return; }
-  if (d.qcheck){ const id = d.qcheck, q = QZ[id], x = CURSO_CLAUDE.find(z => z.id === id); if (q.pick === null){ $("#qerr").textContent = "Marque uma opção primeiro."; return; }
-    q.checked = true; const ok = q.pick === x.quiz[q.i][2]; q.res[q.i] = ok; q.combo = ok ? q.combo + 1 : 0; q.maxCombo = Math.max(q.maxCombo, q.combo); som(ok ? "ok" : "bad"); repintarQuiz(id); return; }
+  if (d.qcheck){ const id = d.qcheck, q = QZ[id], x = CURSO_CLAUDE.find(z => z.id === id); if (q.checked) return; if (q.pick === null){ $("#qerr").textContent = "Marque uma opção primeiro."; return; }
+    q.checked = true; const ok = q.pick === x.quiz[q.i][2]; q.res[q.i] = ok; q.combo = ok ? q.combo + 1 : 0; q.maxCombo = Math.max(q.maxCombo, q.combo); respostaQuiz(ok); repintarQuiz(id); return; }
   if (d.qnext){ const id = d.qnext, q = QZ[id], x = CURSO_CLAUDE.find(z => z.id === id);
     if (q.i + 1 < x.quiz.length){ q.i++; q.pick = null; q.checked = false; repintarQuiz(id); return; }
     const right = q.res.filter(Boolean).length, n = x.quiz.length, wrong = q.res.map((v,k) => v ? null : k+1).filter(Boolean);
@@ -1284,7 +1293,9 @@ document.addEventListener("click", e => {
   if (d.copyPortal){ const p = S.fac.portal || {}; return copiar(`Evolution Lab · Portal Estácio (sincronizado ${new Date(p.at).toLocaleString("pt-BR")})\n${(p.disciplinas||[]).map(x => `- ${x.nome}: ${x.progresso||0}% · ${x.prova||""}`).join("\n")}\nRequisitos: ${Object.entries(p.requisitos||{}).map(([k,[v,t]]) => `${k} ${v}/${t}`).join(", ")}\nMonte um plano de estudo desta semana para essas disciplinas, encaixado na minha rotina (seg a qui 20h-00h, fim de semana leve, sexta descanso).`); }
   if (d.copyBol) return copiar(textoBoletim());
   if (d.meta){ S.cfg.meta = +d.meta; persist(); render(true); return; }
-  if (d.som){ S.cfg.som = !S.cfg.som; persist(); render(true); if (S.cfg.som) som("ok"); return; }
+  if (d.testFeedback){ respostaQuiz(d.testFeedback === "ok"); return; }
+  if (d.fala){ S.cfg.fala = S.cfg.fala === false; if (!S.cfg.fala && window.EvoFeedback) window.EvoFeedback.stop(); persist(); render(true); return; }
+  if (d.som){ S.cfg.som = !S.cfg.som; if (!S.cfg.som && window.EvoFeedback) window.EvoFeedback.stop(); persist(); render(true); if (S.cfg.som) som("ok"); return; }
   if (d.sync){ setSync("busy"); pull().then(ch => { if (dirty) push(); if (ch) render(true); toast(sync === "ok" ? "Sincronizado." : "Não consegui sincronizar agora."); }); return; }
   if (d.export) return copiar(JSON.stringify(S));
   if (d.import){ const v = $("#imp").value.trim(); try { const o = JSON.parse(v); if (!o || !o.v) throw 0; S = norm(o); persist(); render(); toast("Progresso importado."); } catch(x){ $("#imp-err").textContent = "Não reconheci esse texto."; } return; }

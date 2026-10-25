@@ -14,3 +14,30 @@
 #lion-balloon button{width:40px;height:40px;top:0;right:0}
 @media(max-width:860px){#lion-panel{right:max(12px,env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 24px));max-height:calc(100dvh - 108px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}#lion-anchor{right:max(12px,env(safe-area-inset-right,0px))}#lion-panel header small{font-size:12px}#lion-panel .lion-note{font-size:12px;line-height:1.6}#lion-panel .lion-body{padding:14px}#lion-panel .lion-actions button{min-width:70px}}
 @media(max-width:360px){#lion-panel header{padding:9px 10px}#lion-panel header strong{font-size:14px}#lion-panel header small{font-size:11px}#lion-panel .lion-actions{gap:6px}#lion-panel .lion-actions button{font-size:12px;padding:8px 6px}#lion-panel .lion-body{padding:12px}}
+
+/* Lion mais vivo: levitação, energia e reações a cada resposta. */
+#lion-icon{isolation:isolate;--lion-aura:#A78BFA;--lion-spark:#67E8F9}
+#lion-icon img{position:relative;z-index:1;transform-origin:50% 70%;animation:lion-hover 2.8s ease-in-out infinite;filter:drop-shadow(0 4px 8px #0005)}
+#lion-icon::before{content:'';position:absolute;inset:17% 6% 9%;z-index:0;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse,var(--lion-aura),transparent 68%);opacity:.32;filter:blur(7px);animation:lion-energy 2.8s ease-in-out infinite}
+#lion-icon::after{z-index:3}
+#lion-icon .lion-orbit{position:absolute;z-index:2;inset:10px 4px 14px;pointer-events:none;border:1px solid #A78BFA40;border-radius:50%;transform:rotate(-20deg);animation:lion-orbit 6s linear infinite}
+#lion-icon .lion-orbit::before,#lion-icon .lion-orbit::after{content:'';position:absolute;width:4px;height:4px;top:12%;left:12%;border-radius:50%;background:var(--lion-spark);box-shadow:0 0 7px var(--lion-spark)}
+#lion-icon .lion-orbit::after{top:auto;left:auto;right:12%;bottom:12%;width:3px;height:3px;background:#C4B5FD}
+#lion-icon.talking img{animation:lion-chat .65s ease-in-out 5}
+#lion-icon.lion-react-hello img{animation:lion-hello .9s ease-in-out 2}
+#lion-icon.lion-react-ok{--lion-aura:#34D399;--lion-spark:#6EE7B7}
+#lion-icon.lion-react-ok img{animation:lion-cheer .85s ease-in-out 2}
+#lion-icon.lion-react-bad{--lion-aura:#F87171;--lion-spark:#FDA4AF}
+#lion-icon.lion-react-bad img{animation:lion-oops .7s ease-in-out 2}
+#lion-panel .lion-actions button{background:linear-gradient(150deg,#FFFFFF14,transparent 55%),#1E355066;box-shadow:inset 0 1px 0 #FFFFFF25;transition:box-shadow .2s,filter .2s}
+#lion-panel .lion-actions button:first-child{background:linear-gradient(150deg,#FFFFFF44,transparent 55%),linear-gradient(105deg,#A585FF,#63E0F3)}
+#lion-panel .lion-actions button:active{filter:brightness(1.2);box-shadow:inset 0 1px 0 #FFFFFF55,0 0 15px #67E8F933}
+#lion-companion.lion-still *,#lion-companion.lion-suspended *{animation:none!important}
+@keyframes lion-hover{0%,100%{transform:translateY(0) rotate(-4deg)}25%{transform:translate(3px,-7px) rotate(1deg)}50%{transform:translateY(-12px) rotate(4deg)}75%{transform:translate(-3px,-6px) rotate(-1deg)}}
+@keyframes lion-energy{0%,100%{opacity:.24;transform:scale(.85)}50%{opacity:.45;transform:scale(1.12)}}
+@keyframes lion-orbit{from{transform:rotate(-20deg)}to{transform:rotate(340deg)}}
+@keyframes lion-chat{0%,100%{transform:translateY(-2px) rotate(-3deg)}50%{transform:translateY(-12px) rotate(4deg)}}
+@keyframes lion-hello{0%,100%{transform:translateY(-3px) rotate(0)}30%{transform:translateY(-12px) rotate(-10deg)}65%{transform:translateY(-8px) rotate(10deg)}}
+@keyframes lion-cheer{0%,100%{transform:translateY(-3px) rotate(-3deg)}35%{transform:translateY(-19px) rotate(9deg) scale(1.06)}65%{transform:translateY(-6px) rotate(-6deg)}}
+@keyframes lion-oops{0%,100%{transform:translateY(-3px) rotate(0)}25%{transform:translate(-5px,-5px) rotate(-8deg)}65%{transform:translate(5px,-4px) rotate(8deg)}}
+@media(prefers-reduced-motion:reduce){#lion-companion *{animation:none!important}#lion-icon::before{opacity:.24}}
