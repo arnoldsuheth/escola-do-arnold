@@ -19,8 +19,8 @@ const HOST = location.hostname.endsWith(".github.io") ? location.hostname.split(
 const REPO = location.hostname.endsWith(".github.io") ? (location.pathname.split("/").filter(Boolean)[0] || "evolution-lab") : "evolution-lab";
 
 /* ===================== estado ===================== */
-function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}}; }
-function norm(o){ const b = blank(); const s = Object.assign(b, o||{}); s.fac = Object.assign(blank().fac, s.fac||{}); s.fac.discs = s.fac.discs||[]; s.log = s.log||[]; s.bonus = s.bonus||{}; s.chefes = s.chefes||{}; s.cfg = Object.assign(blank().cfg, s.cfg||{}); delete s.pin; return s; }
+function blank(){ return {v:1, nome:"Arnold", updatedAt:0, claude:{}, missoes:{}, prog:{}, chefes:{}, fac:{min:6, sem:1, discs:[]}, log:[], bonus:{}, cfg:{meta:100, som:true}, ext:{}, violao:{treinos:{}, acordes:{}, musicas:[], meta:120}, livros:[]}; }
+function norm(o){ const b = blank(); const s = Object.assign(b, o||{}); s.fac = Object.assign(blank().fac, s.fac||{}); s.fac.discs = s.fac.discs||[]; s.log = s.log||[]; s.bonus = s.bonus||{}; s.chefes = s.chefes||{}; s.cfg = Object.assign(blank().cfg, s.cfg||{}); s.ext = s.ext||{}; s.violao = Object.assign(blank().violao, s.violao||{}); s.livros = s.livros||[]; delete s.pin; return s; }
 let S = norm(lsGet("ea-state"));
 
 /* ===================== cripto ===================== */
@@ -122,6 +122,7 @@ function xpTotal(){
   Object.values(S.chefes).forEach(v => { if (v) x += 50; });
   S.fac.discs.forEach(d => { const m = media(d); if (m !== null && m >= S.fac.min) x += 200; (d.topicos||[]).forEach(t => { if (t.ok) x += 10; }); (d.entregas||[]).forEach(t => { if (t.ok) x += 30; }); });
   x += Object.keys(S.bonus).length * 50;
+  x += xpExtra();
   return x;
 }
 const RANKS = [[0,"Estagiário"],[300,"Trainee"],[800,"Júnior I"],[1500,"Júnior II"],[2500,"Pleno I"],[3800,"Pleno II"],[5400,"Sênior"],[7400,"Staff"],[10000,"Principal"]];
@@ -165,7 +166,9 @@ function atributos(){
   const cl = CURSO_CLAUDE.reduce((s,x) => { const r = S.claude[x.id]; return s + (r && r.done ? .6 + .4*pct(r) : 0); }, 0) / CURSO_CLAUDE.length;
   const logica = Math.min(1, rngProg(29,39)*.7 + (fs.tarefas ? fs.tdone/fs.tarefas : 0)*.3);
   const fac = fs.discs ? fs.p*.6 + (fs.ap/fs.discs)*.4 : 0;
-  return [["Lógica",logica,"#22D3EE"],["Front-end",fe,"#A78BFA"],["IA / Claude",cl,"#F59E0B"],["Git",rngProg(25,28),"#34D399"],["Faculdade",fac,"#F472B6"]].map(([n,v,c]) => [n, Math.round(v*100), c]);
+  const arte = (extStats(extC("arte")).p + extStats(extC("criadores")).p) / 2;
+  const mus = Math.min(1, extStats(extC("violao")).p*.6 + Math.min(1, Object.values(S.violao.acordes).filter(v => v === 2).length/12)*.25 + Math.min(1, S.violao.musicas.filter(m => m.st === "d").length/10)*.15);
+  return [["Lógica",logica,"#22D3EE"],["Front-end",fe,"#A78BFA"],["IA / Claude",cl,"#F59E0B"],["Git",rngProg(25,28),"#34D399"],["Faculdade",fac,"#F472B6"],["Arte e design",arte,"#FBBF24"],["Música",mus,"#FB923C"]].map(([n,v,c]) => [n, Math.round(v*100), c]);
 }
 const TREE = [{id:"HTML",a:0,b:8,x:40,y:75},{id:"CSS",a:9,b:24,x:180,y:75},{id:"Git",a:25,b:26,x:310,y:36},{id:"JS",a:29,b:39,x:310,y:114},{id:"GitHub",a:27,b:28,x:440,y:36},{id:"DOM",a:40,b:45,x:440,y:114},{id:"v1.0",a:46,b:50,x:560,y:75}];
 const TREE_E = [["HTML","CSS"],["CSS","Git"],["CSS","JS"],["Git","GitHub"],["JS","DOM"],["GitHub","v1.0"],["DOM","v1.0"]];
@@ -260,6 +263,9 @@ const ICO = {
   arrow: I('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   back: I('<path d="M19 12H5M11 6l-6 6 6 6"/>'),
   plus: I('<path d="M12 5v14M5 12h14"/>'),
+  grid: I('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
+  music: I('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
+  book: I('<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M4 20.5A1.5 1.5 0 0 0 5.5 22H20v-3"/>'),
   phone: I('<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>'),
 };
 const ICON_SVG = {
@@ -274,9 +280,10 @@ const crestSVG = () => { const p = "cr" + (++_crestN); return `<svg class="crest
 const CREST_BIG = crestSVG();
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Painel","hoje"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["cursos","Meus cursos","grid"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["violao","Violão","music"],["livros","Biblioteca","book"],["perfil","Perfil","perfil"]];
+const NAV_TAB = ["hoje","cursos","violao","livros","perfil"];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
-const secao = r => r.startsWith("aula-") ? "claude" : NAV.some(n => n[0] === r) ? r : "hoje";
+const secao = r => r.startsWith("aula-") ? "claude" : r.startsWith("curso-") ? "cursos" : NAV.some(n => n[0] === r) ? r : "hoje";
 function shell(){
   return `<div class="read-bar" id="readbar"></div><div class="shell">
   <aside class="rail"><a class="brand" href="#hoje">${CREST_BIG}<span><b>Evolution <span class="gtext">Lab</span></b><small id="brandsub">lvl 1 · Estagiário</small></span></a>
@@ -284,7 +291,7 @@ function shell(){
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
   <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
-  <nav class="tabbar" aria-label="Seções">${NAV.map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
+  <nav class="tabbar" aria-label="Seções">${NAV.filter(n => NAV_TAB.includes(n[0])).map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
 }
 function paintTop(){
   const p = $("#pills"); if (!p) return; const lv = nivel(), st = streak(), hx = xpDia(hoje());
@@ -349,7 +356,7 @@ function viewHoje(){
     <section class="card"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono dim">meta ${hx}/${meta} xp</span></div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
     <section class="card"><span class="k">Conquistas</span><div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">${conq.map(([t,d,on,cor]) => `<div class="badge-mini ${on?"":"off"}" title="${esc(d)}"><i style="background:${cor}">${abrev(t)}</i><span style="min-width:0;line-height:1.25">${esc(t)}</span></div>`).join("")}</div></section>
     <section class="card"><span class="k">Cursos</span>
-     ${[["#claude","Curso de Claude",cs.p,"#F59E0B",`${cs.done}/${cs.total}`],["#prog","Programação · BLESSAINT",ps.p,"#A78BFA",`${ps.done}/${ps.total}`],["#fac","Faculdade Estácio",fs.p,"#F472B6",fs.discs?`${fs.tdone}/${fs.tarefas} tarefas`:"cadastrar"]].map(([h,t,p,c,s]) => `<a href="${h}" style="display:block;text-decoration:none;color:var(--text);padding:11px 0;border-top:1px solid var(--line)"><div class="row between"><span style="font-weight:600;font-size:.92rem">${t}</span><span class="tiny mono" style="color:${c}">${s}</span></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${Math.round(p*100)}%;background:${c}"></i></div></a>`).join("")}</section>
+     ${[["#claude","Curso de Claude",cs.p,"#F59E0B",`${cs.done}/${cs.total}`],["#prog","Programação · BLESSAINT",ps.p,"#A78BFA",`${ps.done}/${ps.total}`],["#fac","Faculdade Estácio",fs.p,"#F472B6",fs.discs?`${fs.tdone}/${fs.tarefas} tarefas`:"cadastrar"]].concat(EXT_CURSOS.filter(c => extStats(c).d > 0 && extStats(c).p < 1).map(c => { const s = extStats(c); return [`#curso-${c.id}`, c.nome, s.p, c.cor[1], `${s.d}/${s.t}`]; })).map(([h,t,p,c,s]) => `<a href="${h}" style="display:block;text-decoration:none;color:var(--text);padding:11px 0;border-top:1px solid var(--line)"><div class="row between"><span style="font-weight:600;font-size:.92rem">${t}</span><span class="tiny mono" style="color:${c}">${s}</span></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${Math.round(p*100)}%;background:${c}"></i></div></a>`).join("")}<a class="btn sm" href="#cursos" style="width:100%;margin-top:8px">Ver todos os cursos</a></section>
    </div>
   </div></div>`;
 }
@@ -624,7 +631,7 @@ function ajustesHTML(){
    <details><summary style="cursor:pointer;font-weight:800">Cópia de segurança</summary><div class="stack" style="gap:10px;margin-top:12px"><button class="btn sm" data-export="1">${ICO.copy} Copiar meu progresso</button><textarea class="input" id="imp" placeholder="Cole aqui um progresso copiado (também aceita o da versão anterior)" style="min-height:90px"></textarea><div class="row"><button class="btn sm" data-import="1">Importar</button><span class="err" id="imp-err"></span></div></div></details>
    <div class="row"><button class="btn ghost" data-sair="1">${ICO.out} Sair deste aparelho</button></div></section>`;
 }
-function textoBoletim(){ const lv = nivel(), cs = claudeStats(), ps = progStats(), fs = facStats(); return `Evolution Lab · Boletim de ${S.nome} (${new Date().toLocaleDateString("pt-BR")})\nNível ${lv.n} · ${lv.nome} · ${lv.xp} XP · nota geral ${f1(notaGeral())} · ${streak()} dias seguidos\nCurso de Claude: ${cs.done}/${cs.total}, nota ${f1(cs.nota)}, título ${claudeTitulo()}\nProgramação: ${ps.done}/${ps.total} aulas, nota ${f1(ps.nota)}; chefões derrotados: ${Object.values(S.chefes).filter(Boolean).length}/${PROG_PONTOS_FRACOS.length}\nFaculdade: ${fs.discs} disciplinas, ${fs.ap} acima da média, nota ${f1(fs.nota)}, ${fs.tdone}/${fs.tarefas} tarefas\nAnalise meu desempenho, diga meus pontos fracos e o que priorizar nesta semana.`; }
+function textoBoletim(){ const lv = nivel(), cs = claudeStats(), ps = progStats(), fs = facStats(); return `Evolution Lab · Boletim de ${S.nome} (${new Date().toLocaleDateString("pt-BR")})\nNível ${lv.n} · ${lv.nome} · ${lv.xp} XP · nota geral ${f1(notaGeral())} · ${streak()} dias seguidos\nCurso de Claude: ${cs.done}/${cs.total}, nota ${f1(cs.nota)}, título ${claudeTitulo()}\nProgramação: ${ps.done}/${ps.total} aulas, nota ${f1(ps.nota)}; chefões derrotados: ${Object.values(S.chefes).filter(Boolean).length}/${PROG_PONTOS_FRACOS.length}\nFaculdade: ${fs.discs} disciplinas, ${fs.ap} acima da média, nota ${f1(fs.nota)}, ${fs.tdone}/${fs.tarefas} tarefas\n${EXT_CURSOS.map(c => { const s = extStats(c); return `${c.nome} (${c.plat}): ${s.d}/${s.t} aulas`; }).join("\n")}\nViolão: ${Object.values(S.violao.treinos).reduce((a,b)=>a+b,0)} min de treino, ${S.violao.musicas.filter(m => m.st === "d").length} músicas dominadas · Biblioteca: ${S.livros.filter(l => l.status === "lido").length} livros lidos\nAnalise meu desempenho, diga meus pontos fracos e o que priorizar nesta semana.`; }
 
 /* ===================== render ===================== */
 function render(keep){
@@ -633,7 +640,7 @@ function render(keep){
   const r = rota(), s = secao(r);
   $$("[data-nav]").forEach(a => a.dataset.nav === s ? a.setAttribute("aria-current","page") : a.removeAttribute("aria-current"));
   const y = scrollY;
-  const v = r.startsWith("aula-") ? viewAula(r.slice(5)) : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : r === "fac" ? viewFac() : r === "perfil" ? viewPerfil() : viewHoje();
+  const v = r.startsWith("aula-") ? viewAula(r.slice(5)) : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : r === "fac" ? viewFac() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
   $("#view").innerHTML = v;
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
   if (keep) scrollTo(0, y);
@@ -642,6 +649,190 @@ function render(keep){
 let lastR = null;
 addEventListener("hashchange", () => { if (!SESS && !LOCAL) return; const r = rota(); if (r !== lastR){ lastR = r; fecharModal(); render(); scrollTo(0,0); } });
 addEventListener("scroll", () => { const b = $("#readbar"); if (!b) return; if (!rota().startsWith("aula-")){ b.style.width = "0"; return; } const h = document.documentElement.scrollHeight - innerHeight; b.style.width = (h > 0 ? Math.min(100, scrollY/h*100) : 0) + "%"; }, {passive:true});
+
+/* ===================== MEUS CURSOS (Kiwify, Hotmart), VIOLÃO e BIBLIOTECA ===================== */
+const XP_EXT_AULA = 10, XP_EXT_MOD = 30, XP_TREINO_DIA = 60, XP_ACORDE = 10, XP_MUSICA = 30, XP_LIVRO = 100;
+const extC = id => EXT_CURSOS.find(c => c.id === id);
+const extR = id => { S.ext[id] = S.ext[id] || {m:{}, a:{}}; S.ext[id].m = S.ext[id].m || {}; S.ext[id].a = S.ext[id].a || {}; return S.ext[id]; };
+const modTot = m => m.aulas ? m.aulas.length : m.n;
+function modFeitas(c, mi){ const r = (S.ext[c.id] || {}), m = c.mods[mi]; if (m.aulas) return m.aulas.filter((_,ai) => r.a && r.a[mi+":"+ai]).length; return Math.min(m.n, (r.m && r.m[mi]) || 0); }
+function extStats(c){ let d = 0, t = 0, mc = 0; c.mods.forEach((m,mi) => { const f = modFeitas(c, mi), n = modTot(m); d += f; t += n; if (f >= n) mc++; }); return {d, t, p: t ? d/t : 0, mc}; }
+function extProx(c){
+  const r = S.ext[c.id] || {}; let best = -1, bp = 0;
+  c.mods.forEach((m,mi) => { const f = modFeitas(c, mi), n = modTot(m); if (f > 0 && f < n && f/n > bp){ bp = f/n; best = mi; } });
+  if (best < 0) best = c.mods.findIndex((m,mi) => modFeitas(c, mi) < modTot(m));
+  if (best < 0) return null; const m = c.mods[best];
+  if (m.aulas){ const ai = m.aulas.findIndex((_,k) => !(r.a && r.a[best+":"+k])); return {mi:best, ai, t:m.aulas[ai][0], m:m.t}; }
+  return {mi:best, t:m.t, m:m.t};
+}
+const aulaURL = (c, mi, ai) => { const a = c.mods[mi].aulas && c.mods[mi].aulas[ai]; return a && a[2] ? (c.id === "arte" ? AE + a[2] : a[2]) : c.url; };
+function xpExtra(){
+  let x = 0;
+  EXT_CURSOS.forEach(c => c.mods.forEach((m,mi) => { const f = modFeitas(c, mi); x += f * XP_EXT_AULA; if (f >= modTot(m)) x += XP_EXT_MOD; }));
+  const v = S.violao; Object.values(v.treinos).forEach(min => x += Math.min(XP_TREINO_DIA, min));
+  Object.values(v.acordes).forEach(s => { if (s === 2) x += XP_ACORDE; });
+  v.musicas.forEach(m => { if (m.st === "d") x += XP_MUSICA; });
+  S.livros.forEach(l => { if (l.status === "lido") x += XP_LIVRO; });
+  return x;
+}
+function semearExt(){
+  if (S.extSeed) return;
+  act(() => {
+    EXT_INICIAL.forEach(([id, mi, n]) => { const c = extC(id), r = extR(id), m = c.mods[mi]; if (m.aulas) for (let k=0; k<n; k++) r.a[mi+":"+k] = true; else r.m[mi] = n; });
+    LIVROS_INICIAIS.forEach(l => { if (!S.livros.some(b => b.id === l.id)) S.livros.push(Object.assign({nota:0, pag:0, pags:0, frases:[], notas:"", add:Date.now()}, l)); });
+    S.extSeed = 1;
+  }, "import", "Importei o progresso da Kiwify e da Hotmart");
+}
+function treinoSemana(){ const seg = new Date(); seg.setDate(seg.getDate() - ((seg.getDay()+6)%7)); return [...Array(7)].map((_,i) => { const d = new Date(seg); d.setDate(seg.getDate()+i); const k = iso(d); return {k, min: S.violao.treinos[k] || 0, dow: d.getDay()}; }); }
+function streakViolao(){ const t = S.violao.treinos; let c = 0; const d = new Date(); if (!t[iso(d)]) d.setDate(d.getDate()-1); for (let g=0; g<400; g++){ if (t[iso(d)]) c++; else break; d.setDate(d.getDate()-1); } return c; }
+function capa(c){ return `background:linear-gradient(135deg,${c.cor[0]},#121722 75%)`; }
+const PLAT_COR = {Kiwify:"#7EE787", Hotmart:"#FF8A5B", "Evolution Lab":"#A78BFA", "Estácio":"#F472B6"};
+const platTag = p => `<span class="ptag" style="color:${PLAT_COR[p]||"#A3ABBD"};border-color:${PLAT_COR[p]||"#2A3245"}55">${esc(p)}</span>`;
+
+function viewCursos(){
+  const cs = claudeStats(), ps = progStats(), fs = facStats(), pc = proxClaude(), pp = proxProg();
+  const ext = EXT_CURSOS.map(c => [c, extStats(c)]);
+  const fora = ext.reduce((a,[,s]) => a + s.d, 0);
+  const card = (href, cover, titulo, plat, linha, p, btn, gold) => `<a class="ccard" href="${href}"><div class="ccover" style="${cover}"><b>${esc(titulo)}</b></div><div class="row between">${platTag(plat)}<span class="tiny mono ${p>=1?"okc":""}">${linha}</span></div><div class="bar"><i style="width:${Math.round(p*100)}%"></i></div><span class="btn sm ${gold?"gold":""}" style="width:100%">${btn}</span></a>`;
+  return `<div class="stack fade">
+  <div><span class="k">Evolution Lab · todos os cursos</span><h1 style="margin-top:6px">Meus <span class="gtext">cursos</span></h1><p class="muted" style="margin-top:4px">Tudo num lugar só. Marque aqui o que você assistiu lá e ganhe XP no seu cargo.</p></div>
+  <div class="stats3" style="max-width:560px"><div class="stat"><div class="k">cursos</div><div class="v num">${3 + EXT_CURSOS.length}</div></div><div class="stat"><div class="k">plataformas</div><div class="v num">4<small>→1</small></div></div><div class="stat"><div class="k">aulas lá fora</div><div class="v num" style="color:var(--amber)">${fora}</div></div></div>
+  <div class="cgrid">
+   ${card("#claude", "background:linear-gradient(135deg,#3A2F66,#121722 75%)", "Claude do zero ao avançado", "Evolution Lab", `${cs.done}/${cs.total}`, cs.p, pc ? `Continuar · ${esc(nomeItem(pc))}` : "Ver certificado")}
+   ${card("#prog", "background:linear-gradient(135deg,#1B3550,#121722 75%)", "Programação · Site BLESSAINT", "Evolution Lab", `${ps.done}/${ps.total}`, ps.p, pp ? `Continuar · Aula ${pp[0]}` : "Concluído")}
+   ${card("#fac", "background:linear-gradient(135deg,#4A1E38,#121722 75%)", "Estácio · Ciência da Computação", "Estácio", `${fs.discs} disc.`, fs.p, "Ver disciplinas")}
+   ${ext.map(([c,s]) => { const px = extProx(c); return card(`#curso-${c.id}`, capa(c), c.nome, c.plat, s.p >= 1 ? "concluído" : `${s.d}/${s.t} aulas`, s.p, px ? `Próxima: ${esc(px.t)}` : "Revisar", !!px && s.d > 0); }).join("")}
+  </div>
+  <div class="grid2"><a class="card linkcard" href="#violao"><span class="ico2">${ICO.music}</span><span><b>Violão</b><span class="tiny dim" style="display:block">Treino da semana, acordes e repertório</span></span>${ICO.arrow}</a>
+   <a class="card linkcard" href="#livros"><span class="ico2">${ICO.book}</span><span><b>Biblioteca</b><span class="tiny dim" style="display:block">${S.livros.length} ${S.livros.length===1?"livro":"livros"} na estante</span></span>${ICO.arrow}</a></div>
+  </div>`;
+}
+
+function viewCurso(id){
+  const c = extC(id); if (!c) return viewCursos();
+  const s = extStats(c), px = extProx(c), r = S.ext[c.id] || {a:{}, m:{}};
+  const pxURL = px ? aulaURL(c, px.mi, px.ai) : c.url;
+  const mods = c.mods.map((m, mi) => {
+    const f = modFeitas(c, mi), n = modTot(m), done = f >= n, cur = px && px.mi === mi;
+    const corpo = m.aulas
+      ? m.aulas.map((a, ai) => { const on = !!(r.a && r.a[mi+":"+ai]), nx = cur && px.ai === ai; return `<div class="les ${nx?"nx":""}"><button class="tick" role="checkbox" aria-checked="${on}" aria-label="Marcar ${esc(a[0])}" data-exta="${c.id}:${mi}:${ai}"></button><span class="t"><b>${esc(a[0])}</b><span class="tiny ${nx?"vio":"dim"}">${nx ? "próxima" : ""}${nx && a[1] ? " · " : ""}${a[1] ? a[1] + " min" : ""}</span></span><a class="open" href="${esc(aulaURL(c, mi, ai))}" target="_blank" rel="noopener">Abrir ↗</a></div>`; }).join("")
+      : `<div class="les"><div class="cnt"><button class="btn sm" data-extm="${c.id}:${mi}:-1" aria-label="Menos uma aula">−</button><span class="mono num">${f}<small class="dim">/${n}</small></span><button class="btn sm" data-extm="${c.id}:${mi}:1" aria-label="Mais uma aula">+</button></div><span class="t tiny dim">aulas assistidas neste módulo</span>${done ? `<button class="btn sm ghost" data-extm="${c.id}:${mi}:0">zerar</button>` : `<button class="btn sm" data-extm="${c.id}:${mi}:all">Concluir módulo</button>`}</div><div class="les"><span class="t tiny dim">A lista de aulas fica na ${esc(c.plat)}.</span><a class="open" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir curso ↗</a></div>`;
+    const ok2 = c.id+":"+mi, aberto = OPEN_MODS.has(ok2) || (cur && !FECHADOS.has(ok2));
+    return `<details class="mod ${done?"done":cur?"cur":""}" data-mod="${ok2}" ${aberto?"open":""}><summary><span class="mn">${done ? ICO.check : f ? Math.round(f/n*100) + "%" : "·"}</span><span style="flex:1;min-width:0"><b style="display:block;line-height:1.3">${esc(m.t)}</b><span class="tiny dim">${n} ${n===1?"aula":"aulas"}</span>${f && !done ? `<div class="bar" style="margin-top:8px;max-width:240px;height:5px"><i style="width:${Math.round(f/n*100)}%"></i></div>` : ""}</span><span class="mono small ${done?"okc":"dim"}">${f}/${n}</span></summary>${corpo}</details>`;
+  }).join("");
+  return `<div class="stack fade">
+  <a class="back" href="#cursos">${ICO.back} Meus cursos</a>
+  <div class="chero">
+   <section class="card" style="${capa(c)}">${platTag(c.plat)}<h1 style="margin:12px 0 6px">${esc(c.nome)}</h1><p class="muted">${esc(c.sub)} · ${c.mods.length} módulos, ${s.t} aulas.</p>
+    <div class="row" style="margin-top:14px">${px ? `<a class="btn gold" href="${esc(pxURL)}" target="_blank" rel="noopener">▶ Continuar: ${esc(px.t)}</a>` : `<span class="tag ok">curso concluído</span>`}<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">Abrir na ${esc(c.plat)} ↗</a></div></section>
+   <section class="card row" style="gap:18px;flex-wrap:nowrap">${ring(s.p, 104, 10, "#22D3EE", Math.round(s.p*100) + "%")}<div><span class="k">Progresso</span><div class="mono" style="font-size:1.25rem;font-weight:700">${s.d} / ${s.t} aulas</div><div class="small muted">${s.mc} módulos completos · atributo <b style="color:${c.cor[1]}">${esc(c.attr)}</b></div><div class="tiny dim" style="margin-top:6px">Aula +${XP_EXT_AULA} xp · módulo completo +${XP_EXT_MOD} xp</div></div></section>
+  </div>
+  <div>${mods}</div>
+  <p class="tiny dim">Assistiu lá? Marque aqui. O vídeo e o material continuam na ${esc(c.plat)}; aqui fica o seu progresso.</p>
+  </div>`;
+}
+
+const OPEN_MODS = new Set(), FECHADOS = new Set();
+document.addEventListener("toggle", e => { const k = e.target.dataset && e.target.dataset.mod; if (!k) return; if (e.target.open){ OPEN_MODS.add(k); FECHADOS.delete(k); } else { OPEN_MODS.delete(k); FECHADOS.add(k); } }, true);
+let MUS_ADD = false;
+function viewViolao(){
+  const v = S.violao, sem = treinoSemana(), tot = sem.reduce((a,d) => a + d.min, 0), meta = v.meta || 120, mx = Math.max(30, ...sem.map(d => d.min));
+  const NOMES = ["dom","seg","ter","qua","qui","sex","sáb"], hj = v.treinos[hoje()] || 0, st = streakViolao();
+  const va = extC("violao"), vs = extStats(va), vp = extProx(va);
+  const mvs = va.mods.map((m,mi) => [m, mi, modFeitas(va, mi)]).filter(([m,mi,f]) => f < modTot(m) && (!vp || mi >= vp.mi)).slice(0,3);
+  const STN = {q:["quero tocar","q"], a:["aprendendo","a"], d:["domino","d"]};
+  return `<div class="stack fade">
+  <div><span class="k">Prática · Violão Academy + Louvor Simplificado</span><h1 style="margin-top:6px">Violão</h1></div>
+  <div class="chero">
+   <section class="card"><div class="row between"><h2>Treino da semana</h2><span class="mono" style="color:var(--amber)">${st} ${st===1?"dia":"dias"} seguidos</span></div>
+    <div class="vweek">${sem.map(d => `<div title="${fmtData(d.k)}: ${d.min} min"><i style="height:${d.min ? Math.max(8, Math.round(d.min/mx*72)) : 0}px"></i><span class="${d.k===hoje()?"today":""}">${NOMES[d.dow]}</span></div>`).join("")}</div>
+    <div class="row between" style="margin-top:12px"><span class="small muted"><b class="mono" style="color:var(--text)">${tot} min</b> de ${meta} min na semana · hoje ${hj} min</span></div>
+    <div class="row" style="margin-top:10px;gap:8px"><span class="tiny dim">Registrar treino de hoje:</span>${[10,20,30,45].map(n => `<button class="btn sm" data-treino="${n}">+${n} min</button>`).join("")}${hj ? `<button class="btn sm ghost" data-treino="0">desfazer hoje</button>` : ""}</div>
+    <div class="tiny dim" style="margin-top:8px">1 xp por minuto, até ${XP_TREINO_DIA} xp por dia.</div></section>
+   <section class="card"><h2 style="margin-bottom:12px">Acordes</h2><div class="chords">${ACORDES.map(a => { const s2 = v.acordes[a] || 0; return `<button class="cd s${s2}" data-acorde="${esc(a)}" aria-label="${esc(a)}: ${["ainda não","treinando","domino"][s2]}">${esc(a)}</button>`; }).join("")}</div>
+    <p class="tiny dim" style="margin-top:12px">Toque para mudar: <span style="color:var(--dim)">●</span> ainda não → <span style="color:var(--amber)">●</span> treinando → <span style="color:var(--green)">●</span> domino (+${XP_ACORDE} xp)</p></section>
+  </div>
+  <section class="card"><div class="row between"><div>${platTag("Hotmart")}<h2 style="margin-top:8px">Violão Academy</h2></div><span class="mono">${vs.d}/${vs.t} · ${Math.round(vs.p*100)}%</span></div>
+   <div class="bar" style="margin:12px 0 4px"><i style="width:${Math.round(vs.p*100)}%"></i></div>
+   ${mvs.map(([m,mi,f]) => `<div class="song"><span class="st ${f?"a":"q"}">${Math.round(f/modTot(m)*100)}%</span><span style="flex:1;min-width:0"><b>${esc(m.t)}</b><span class="tiny dim" style="display:block">${f}/${modTot(m)} aulas${vp && vp.mi === mi ? " · você parou aqui" : ""}</span></span><button class="btn sm" data-extm="violao:${mi}:1">+1 aula</button></div>`).join("")}
+   <div class="row" style="margin-top:10px"><a class="btn sm" href="#curso-violao">Ver os ${va.mods.length} módulos</a><a class="btn sm" href="${esc(va.url)}" target="_blank" rel="noopener">Abrir na Hotmart ↗</a></div></section>
+  <section class="card"><div class="row between" style="margin-bottom:6px"><h2>Repertório</h2><button class="btn sm" data-musadd>${ICO.plus} Música</button></div>
+   ${MUS_ADD ? `<form id="f-mus" class="row" style="gap:8px;margin:8px 0 12px"><input id="mus-nome" class="input" placeholder="Nome da música" maxlength="60" style="flex:2;min-width:160px" required><select id="mus-fonte" class="input" style="flex:1;min-width:150px">${["Violão Academy","100 louvores sem pestana","+200 louvores","LS Vol. 3","Outra"].map(o => `<option>${o}</option>`).join("")}</select><button class="btn sm gold">Adicionar</button></form>` : ""}
+   ${v.musicas.length ? v.musicas.map((m,i) => `<div class="song"><button class="st ${STN[m.st][1]}" data-musst="${i}" aria-label="Mudar status">${STN[m.st][0]}</button><span style="flex:1;min-width:0"><b>${esc(m.nome)}</b><span class="tiny dim" style="display:block">${esc(m.fonte)} · ${m.tr||0} ${m.tr===1?"treino":"treinos"}</span></span><button class="btn sm" data-mustr="${i}">+1 treino</button><button class="btn sm ghost" data-musdel="${i}" aria-label="Remover">✕</button></div>`).join("") : `<p class="muted small" style="margin:8px 0 0">Nenhuma música ainda. Adicione as que você está tirando: aqui fica o nome e o progresso, a cifra continua na apostila.</p>`}
+   <div class="row" style="margin-top:12px;gap:8px">${["ls1","ls3"].map(k => { const c = extC(k); return `<a class="btn sm" href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.nome.replace("Louvor Simplificado","LS"))} ↗</a>`; }).join("")}</div>
+   <div class="tiny dim" style="margin-top:8px">Toque no status para mudar: quero tocar → aprendendo → domino (+${XP_MUSICA} xp).</div></section>
+  </div>`;
+}
+
+let BIBF = "todos", BOOK_ADD = false;
+const BST = {lendo:"lendo", lido:"lido", quero:"quero ler"};
+function capaLivro(l, big){ return `<div class="bc ${big?"big":""}" style="background:linear-gradient(160deg,${l.cor || "#3A2F66"},#121722)"><small>${esc((l.tema || "livro").toUpperCase())}</small><b>${esc(l.titulo)}</b><small>${esc(l.autor || "")}</small></div>`; }
+function viewLivros(){
+  const ano = String(new Date().getFullYear());
+  const lidosAno = S.livros.filter(l => l.status === "lido" && (l.fim || "").startsWith(ano)).length, lendo = S.livros.filter(l => l.status === "lendo").length, favs = S.livros.filter(l => l.fav).length;
+  const lista = S.livros.filter(l => BIBF === "todos" ? true : BIBF === "fav" ? l.fav : l.status === BIBF);
+  const ord = {lendo:0, quero:1, lido:2};
+  lista.sort((a,b) => (ord[a.status]-ord[b.status]) || (b.add||0)-(a.add||0));
+  return `<div class="stack fade">
+  <div><span class="k">Leituras · o que forma a sua cabeça</span><h1 style="margin-top:6px">Biblioteca</h1><p class="muted" style="margin-top:4px">Livros que você leu, está lendo e quer ler. Com nota, anotações e as frases que marcaram.</p></div>
+  <div class="stats3" style="max-width:560px"><div class="stat"><div class="k">lidos em ${ano}</div><div class="v num">${lidosAno}</div></div><div class="stat"><div class="k">lendo</div><div class="v num">${lendo}</div></div><div class="stat"><div class="k">favoritos</div><div class="v num">${favs}</div></div></div>
+  <div class="row between"><div class="seg">${[["todos","Todos"],["lendo","Lendo"],["lido","Lidos"],["quero","Quero ler"],["fav","Favoritos ★"]].map(([k,t]) => `<button data-bibf="${k}" aria-pressed="${BIBF===k}">${t}</button>`).join("")}</div><button class="btn sm gold" data-bookadd>${ICO.plus} Livro</button></div>
+  ${BOOK_ADD ? `<form id="f-book" class="card row" style="gap:8px"><input id="bk-t" class="input" placeholder="Título" maxlength="80" required style="flex:2;min-width:180px"><input id="bk-a" class="input" placeholder="Autor" maxlength="60" style="flex:1;min-width:140px"><select id="bk-s" class="input" style="flex:1;min-width:120px"><option value="lendo">Lendo</option><option value="lido">Já li</option><option value="quero">Quero ler</option></select><button class="btn sm gold">Pôr na estante</button></form>` : ""}
+  <div class="shelf">${lista.map(l => `<button class="book" data-book="${esc(l.id)}">${capaLivro(l)}${l.status === "lendo" && l.pags ? `<div class="bar" style="height:4px"><i style="width:${Math.round(l.pag/l.pags*100)}%"></i></div>` : ""}<span class="tiny ${l.status==="lido"?"okc":"dim"}">${BST[l.status]}${l.nota ? ` · <span style="color:var(--amber)">${"★".repeat(l.nota)}</span>` : ""}${l.fav ? " · favorito" : ""}</span></button>`).join("")}
+   <button class="book add" data-bookadd><span>${ICO.plus}<br>Adicionar livro</span></button></div>
+  </div>`;
+}
+function abrirLivro(id){
+  const l = S.livros.find(b => b.id === id); if (!l) return;
+  fecharModal(); const s = document.createElement("div"); s.className = "sheet";
+  s.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true" aria-label="${esc(l.titulo)}">
+   <div class="row" style="gap:16px;align-items:flex-start;flex-wrap:nowrap">${capaLivro(l, true)}<div style="min-width:0;flex:1"><h2>${esc(l.titulo)}</h2><div class="small muted">${esc(l.autor||"")}${l.tema ? " · " + esc(l.tema) : ""}</div>${l.origem ? `<div class="tiny dim" style="margin-top:4px">${esc(l.origem)}</div>` : ""}
+    <div class="stars5" style="margin-top:10px">${[1,2,3,4,5].map(n => `<button data-bnota="${esc(l.id)}:${n}" aria-label="${n} estrelas" class="${n<=l.nota?"on":""}">★</button>`).join("")}</div></div></div>
+   <div class="seg">${Object.entries(BST).map(([k,t]) => `<button data-bst="${esc(l.id)}:${k}" aria-pressed="${l.status===k}">${t}</button>`).join("")}<button data-bfav="${esc(l.id)}" aria-pressed="${!!l.fav}">★ favorito</button></div>
+   <div class="row" style="gap:8px"><label class="tiny dim">Página <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pag||""}" data-bpag="${esc(l.id)}"></label><label class="tiny dim">de <input class="input" type="number" min="0" inputmode="numeric" style="width:90px" value="${l.pags||""}" data-bpags="${esc(l.id)}"></label>${l.status==="lido" ? `<span class="tiny okc">terminado ${l.fim ? fmtData(l.fim) : ""} · +${XP_LIVRO} xp</span>` : ""}</div>
+   <div><span class="k">Frases que marcaram</span>${(l.frases||[]).map((f,i) => `<div class="note row between" style="flex-wrap:nowrap"><span>“${esc(f)}”</span><button class="btn sm ghost" data-bfdel="${esc(l.id)}:${i}" aria-label="Apagar frase">✕</button></div>`).join("")}
+    <form class="row" data-bfrase="${esc(l.id)}" style="gap:8px;margin-top:8px"><input class="input" placeholder="Escreva uma frase do livro com as suas palavras" maxlength="280" style="flex:1;min-width:0"><button class="btn sm">Salvar</button></form></div>
+   <div><span class="k">Minhas anotações</span><textarea class="input" rows="4" data-bnotas="${esc(l.id)}" placeholder="O que eu aprendi e o que vou aplicar" style="width:100%;margin-top:8px">${esc(l.notas||"")}</textarea></div>
+   <div class="row between">${l.url ? `<a class="btn sm" href="${esc(l.url)}" target="_blank" rel="noopener">Abrir o livro ↗</a>` : "<span></span>"}<div class="row" style="gap:8px"><button class="btn sm ghost" data-bdel="${esc(l.id)}">Remover</button><button class="btn sm gold" data-close>Fechar</button></div></div>
+  </div>`;
+  document.body.appendChild(s);
+  s.addEventListener("click", e => { if (e.target === s || e.target.closest("[data-close]")){ fecharModal(); render(true); } });
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t || !SESS && !LOCAL) return; const d = t.dataset;
+  if (d.exta){ const [id, mi, ai] = d.exta.split(":"); const c = extC(id), k = mi+":"+ai; let on; act(() => { const r = extR(id); r.a[k] = !r.a[k]; if (!r.a[k]) delete r.a[k]; on = !!r.a[k]; }, "ext", null, e); if (on) S.log[0] && (S.log[0].txt = `${c.nome} · ${c.mods[+mi].aulas[+ai][0]}`); render(true); return; }
+  if (d.extm){ const [id, mi, op] = d.extm.split(":"); const c = extC(id), m = c.mods[+mi], f = modFeitas(c, +mi); const nv = op === "all" ? m.n : op === "0" ? 0 : Math.max(0, Math.min(m.n, f + (+op)));
+    act(() => { extR(id).m[mi] = nv; }, "ext", nv > f ? `${c.nome} · ${m.t} (${nv}/${m.n})` : null, e); render(true); return; }
+  if (d.treino !== undefined){ const n = +d.treino, h = hoje(); act(() => { const tr = S.violao.treinos; if (!n) delete tr[h]; else tr[h] = (tr[h]||0) + n; }, "violao", n ? `Violão · treino de ${n} min` : null, e); render(true); return; }
+  if (d.acorde){ const a = d.acorde; act(() => { S.violao.acordes[a] = ((S.violao.acordes[a]||0) + 1) % 3; }, "violao", (S.violao.acordes[a]||0) === 1 ? `Violão · dominei o acorde ${a}` : null, e); render(true); return; }
+  if (d.musadd !== undefined){ MUS_ADD = !MUS_ADD; render(true); if (MUS_ADD){ const i = $("#mus-nome"); i && i.focus(); } return; }
+  if (d.musst !== undefined){ const m = S.violao.musicas[+d.musst], nx = {q:"a", a:"d", d:"q"}[m.st]; act(() => { m.st = nx; }, "violao", nx === "d" ? `Violão · ${m.nome} dominada` : null, e); render(true); return; }
+  if (d.mustr !== undefined){ const m = S.violao.musicas[+d.mustr]; m.tr = (m.tr||0) + 1; if (m.st === "q") m.st = "a"; persist(); render(true); toast(`${m.nome}: ${m.tr} ${m.tr===1?"treino":"treinos"}`); return; }
+  if (d.musdel !== undefined){ if (t.dataset.confirm !== "1"){ t.dataset.confirm = "1"; t.textContent = "remover?"; return; } act(() => { S.violao.musicas.splice(+d.musdel, 1); }, "violao", null); render(true); return; }
+  if (d.bibf){ BIBF = d.bibf; render(true); return; }
+  if (d.bookadd !== undefined){ BOOK_ADD = !BOOK_ADD; render(true); if (BOOK_ADD){ const i = $("#bk-t"); i && i.focus(); } return; }
+  if (d.book) return abrirLivro(d.book);
+  const L = id => S.livros.find(b => b.id === id);
+  if (d.bnota){ const [id, n] = d.bnota.split(":"); const l = L(id); l.nota = l.nota === +n ? 0 : +n; persist(); abrirLivro(id); return; }
+  if (d.bst){ const [id, st] = d.bst.split(":"); const l = L(id); act(() => { l.status = st; if (st === "lido"){ l.fim = l.fim || hoje(); if (l.pags) l.pag = l.pags; } else delete l.fim; }, "livro", st === "lido" ? `Biblioteca · terminei ${l.titulo}` : null, e); abrirLivro(id); return; }
+  if (d.bfav){ const l = L(d.bfav); l.fav = !l.fav; persist(); abrirLivro(l.id); return; }
+  if (d.bfdel){ const [id, i] = d.bfdel.split(":"); L(id).frases.splice(+i, 1); persist(); abrirLivro(id); return; }
+  if (d.bdel){ if (t.dataset.confirm !== "1"){ t.dataset.confirm = "1"; t.textContent = "Toque de novo para remover"; return; } act(() => { S.livros = S.livros.filter(b => b.id !== d.bdel); }, "livro", null); fecharModal(); render(true); return; }
+});
+document.addEventListener("submit", e => {
+  const f = e.target;
+  if (f.id === "f-mus"){ e.preventDefault(); const nome = $("#mus-nome").value.trim(); if (!nome) return; S.violao.musicas.unshift({nome: nome.slice(0,60), fonte: $("#mus-fonte").value, st:"a", tr:0}); MUS_ADD = false; persist(); render(true); return; }
+  if (f.id === "f-book"){ e.preventDefault(); const tt = $("#bk-t").value.trim(); if (!tt) return; const st = $("#bk-s").value, cores = ["#3A2F66","#1B3550","#4A1E38","#5B3A12","#14324A","#1F3A2A"];
+    act(() => S.livros.push({id:"b"+Date.now().toString(36), titulo:tt.slice(0,80), autor:$("#bk-a").value.trim().slice(0,60), status:st, nota:0, pag:0, pags:0, frases:[], notas:"", add:Date.now(), fim: st === "lido" ? hoje() : undefined, cor:cores[S.livros.length % cores.length]}), "livro", `Biblioteca · ${tt}`, e); BOOK_ADD = false; render(true); return; }
+  if (f.dataset.bfrase){ e.preventDefault(); const i = f.querySelector("input"), v = i.value.trim(); if (!v) return; const l = S.livros.find(b => b.id === f.dataset.bfrase); l.frases = l.frases || []; l.frases.push(v.slice(0,280)); persist(); abrirLivro(l.id); return; }
+}, true);
+document.addEventListener("change", e => {
+  const t = e.target, d = t.dataset; const L = id => S.livros.find(b => b.id === id);
+  if (d.bpag){ const l = L(d.bpag); l.pag = Math.max(0, parseInt(t.value,10) || 0); if (l.pags && l.pag > l.pags) l.pag = l.pags; if (l.status === "quero" && l.pag) l.status = "lendo"; persist(); return; }
+  if (d.bpags){ const l = L(d.bpags); l.pags = Math.max(0, parseInt(t.value,10) || 0); persist(); return; }
+  if (d.bnotas){ const l = L(d.bnotas); l.notas = t.value.slice(0, 4000); persist(); return; }
+});
 
 /* ===================== eventos ===================== */
 document.addEventListener("click", e => {
@@ -788,6 +979,7 @@ async function entrar(fazerPull){
   LOCAL = true; lastR = rota(); render();
   if (fazerPull){ setSync("busy"); const ch = await pull(); if (ch) render(true); }
   else setSync("ok");
+  if (!S.extSeed){ semearExt(); render(true); }
   await garantirChaves(); if (await lerFeed()) render(true);
 }
 
