@@ -44,7 +44,7 @@
   return {auto:v.auto!==false,motion:v.motion!==false,focus:v.focus===true,
    water:pick(v.water,[10,15,20,30,45,60],20),walk:pick(v.walk,[30,45,60,90,120],60),
    quiet:{on:q.on===true,from:Math.min(23,Math.max(0,Number.isFinite(Number(q.from))?Number(q.from):22)),to:Math.min(23,Math.max(0,Number.isFinite(Number(q.to))?Number(q.to):7))},
-   tone:toneOf(v.tone),voiceName:typeof v.voiceName==='string'?v.voiceName.slice(0,120):'',rate:pick(v.rate,[0.85,1,1.15],1),at:Number(v.at)||0};
+   tone:toneOf(v.tone),voiceName:typeof v.voiceName==='string'?v.voiceName.slice(0,120):'',rate:pick(v.rate,[0.85,1,1.15],1),speak:v.speak===true,at:Number(v.at)||0};
  }
  function isQuiet(prefs,now){if(!prefs.quiet||!prefs.quiet.on)return false;const h=clock(now).hour,a=prefs.quiet.from,b=prefs.quiet.to;if(a===b)return false;return a<b?h>=a&&h<b:h>=a||h<b;}
  /* Lembretes ligados ao progresso real. Cada tipo, no máximo uma vez por dia. */
