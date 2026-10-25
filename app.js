@@ -176,7 +176,7 @@ const TREE_E = [["HTML","CSS"],["CSS","Git"],["CSS","JS"],["Git","GitHub"],["JS"
 function arvore(){
   const N = {}; TREE.forEach(t => N[t.id] = Object.assign({p:rngProg(t.a,t.b)}, t));
   const prox = TREE.find(t => N[t.id].p < 1);
-  let svg = `<svg class="tree" viewBox="0 0 600 150" role="img" aria-label="Árvore de tecnologias">`;
+  let svg = `<svg class="tree tree-wide" viewBox="0 0 600 150" role="img" aria-label="Árvore de tecnologias">`;
   TREE_E.forEach(([s,d]) => { const A = N[s], B = N[d], on = A.p === 1; svg += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
   TREE.forEach(t => { const n = N[t.id], r = t.id.length > 4 ? 26 : 24, c = 2*Math.PI*r;
     if (n.p === 1) svg += `<circle cx="${t.x}" cy="${t.y}" r="${r}" style="fill:#22D3EE"/><text x="${t.x}" y="${t.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:600">${t.id}</text>`;
@@ -343,24 +343,26 @@ function viewHoje(){
   const abrev = t => t.split(" ").map(w => w[0]).join("").slice(0,3).toUpperCase();
   const prox = pc ? `#aula-${pc.id}` : "#perfil";
   return `<div class="stack fade">
-  <div class="head"><div><h1>${sd.oi}, <span>${esc(S.nome)}</span></h1><div class="muted small" style="margin-top:4px">${new Date().toLocaleDateString("pt-BR",{weekday:"long"})} · ${sd.sub}</div></div>
+  <div class="head"><div><h1>${sd.oi}, <span>${esc(S.nome)}</span></h1><div class="muted small" style="margin-top:4px">${new Date().toLocaleDateString("pt-BR",{weekday:"long"})} · ${sd.sub}</div>${(([f,a]) => `<p class="frase">“${esc(f)}”${a ? ` <span>${esc(a)}</span>` : ""}</p>`)(FRASE_DIA())}</div>
    <span class="pill">nota geral ${f1(notaGeral())}</span></div>
   <div class="dash">
    <div class="stack">
-    <section class="card"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
+    <section class="card o2"><div class="row between"><span class="k">Carreira</span><span class="tag gold">lvl ${lv.n} · ${esc(lv.nome)}</span></div>
      <div class="career">${CARREIRA.map((c,i) => `${i ? `<i class="${i<=ci?"on":""}"></i>` : ""}<span class="${i<ci?"on":i===ci?"cur":""}">${c}</span>`).join("")}</div>
      <div class="stats3"><div class="stat"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat"><div class="k">aulas</div><div class="v num">${cs.done+ps.done}<small>/${cs.total+ps.total}</small></div></div><div class="stat"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
      <div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${lv.prox-lv.xp} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div></section>
-    <section class="card"><span class="k">Árvore de tecnologias · programação</span><div style="margin-top:8px">${arv.svg}</div><div class="small muted">${arv.txt}</div></section>
-    <section class="card"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +50 xp"}</span></div>
+    <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +50 xp"}</span></div>
      <div style="margin-top:6px">${md.list.map(q => { const ok = feitoHoje(q.k); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
      <div class="row" style="margin-top:12px"><a class="btn gold" href="${prox}">${pc ? `Continuar quest · ${esc(nomeItem(pc))}` : "Ver certificado"}</a>${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div></section>
+    <div class="trees o4"><div class="ttabs" role="tablist">${[["prog","Programação"],["claude","Claude"],["fac","Faculdade"],["design","Design"]].map(([k,t]) => `<button role="tab" data-ttab="${k}" aria-selected="${TREE_TAB===k}">${t}</button>`).join("")}</div>
+    <section class="card treecard ${TREE_TAB==="prog"?"on":""}" data-tree="prog"><div class="row between"><span class="k">Árvore · Programação</span><a class="tiny mono" href="#prog" style="color:var(--violet);text-decoration:none">${Math.round(ps.p*100)}% ›</a></div><div style="margin-top:8px">${arv.svg}${listaArvore(arvoreProgNodes().nodes)}</div><div class="small muted">${arv.txt}</div></section>
+    ${[["claude",arvoreClaude()],["fac",arvoreFac()],["design",arvoreDesign()]].map(([k,t]) => cardArvore(t, k)).join("")}</div>
    </div>
    <div class="stack">
-    <section class="card"><span class="k">Atributos</span>${attrs.map(([n,v,c]) => `<div class="attr"><span>${n}</span><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Crescem conforme você conclui aulas, tarefas e disciplinas.</div></section>
-    <section class="card"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono dim">meta ${hx}/${meta} xp</span></div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
-    <section class="card"><span class="k">Conquistas</span><div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">${conq.map(([t,d,on,cor]) => `<div class="badge-mini ${on?"":"off"}" title="${esc(d)}"><i style="background:${cor}">${abrev(t)}</i><span style="min-width:0;line-height:1.25">${esc(t)}</span></div>`).join("")}</div></section>
-    <section class="card"><span class="k">Cursos</span>
+    <section class="card o5"><span class="k">Atributos</span>${attrs.map(([n,v,c]) => `<div class="attr"><span>${n}</span><div class="bar"><i style="width:${v}%;background:${c}"></i></div><b>${v}</b></div>`).join("")}<div class="tiny dim" style="margin-top:10px">Crescem conforme você conclui aulas, tarefas e disciplinas.</div></section>
+    <section class="card o3"><div class="row between"><span class="k">Constância · ${st} ${st===1?"dia":"dias"}</span><span class="tiny mono dim">meta ${hx}/${meta} xp</span></div><div class="weekt">${semana}</div><div class="bar" style="margin-top:14px;height:6px"><i style="width:${Math.min(100,Math.round(hx/meta*100))}%;background:var(--amber)"></i></div></section>
+    <section class="card o6"><span class="k">Conquistas</span><div class="grid2" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px">${conq.map(([t,d,on,cor]) => `<div class="badge-mini ${on?"":"off"}" title="${esc(d)}"><i style="background:${cor}">${abrev(t)}</i><span style="min-width:0;line-height:1.25">${esc(t)}</span></div>`).join("")}</div></section>
+    <section class="card o7"><span class="k">Cursos</span>
      ${[["#claude","Curso de Claude",cs.p,"#F59E0B",`${cs.done}/${cs.total}`],["#prog","Programação · BLESSAINT",ps.p,"#A78BFA",`${ps.done}/${ps.total}`],["#fac","Faculdade Estácio",fs.p,"#F472B6",fs.discs?`${fs.tdone}/${fs.tarefas} tarefas`:"cadastrar"]].concat(EXT_CURSOS.filter(c => extStats(c).d > 0 && extStats(c).p < 1).map(c => { const s = extStats(c); return [`#curso-${c.id}`, c.nome, s.p, c.cor[1], `${s.d}/${s.t}`]; })).map(([h,t,p,c,s]) => `<a href="${h}" style="display:block;text-decoration:none;color:var(--text);padding:11px 0;border-top:1px solid var(--line)"><div class="row between"><span style="font-weight:600;font-size:.92rem">${t}</span><span class="tiny mono" style="color:${c}">${s}</span></div><div class="bar" style="height:5px;margin-top:8px"><i style="width:${Math.round(p*100)}%;background:${c}"></i></div></a>`).join("")}<a class="btn sm" href="#cursos" style="width:100%;margin-top:8px">Ver todos os cursos</a></section>
    </div>
   </div></div>`;
@@ -987,6 +989,69 @@ document.addEventListener("click", e => {
     if (!dCarreira(k)) DQ.gain = Math.max(0, dXP(k, dRec(k)) - dXP(k, prev));
     DQ.fim = true; repintarD(); $("#dbox").scrollIntoView({block:"start", behavior:"smooth"}); if (DQ.vivo && right/n >= .7){ confetti(); som("done"); } render(true); return; }
 });
+
+/* ===================== árvores de carreira (Claude, Faculdade, Design) ===================== */
+/* nó: {id, cod (dentro do círculo), nome, x, y, p (0..1)}; arestas [de, para] */
+function svgArvore(nodes, edges, nome){
+  const N = {}; nodes.forEach(n => N[n.id] = n); const prox = nodes.find(n => n.p < 1 && !n.ini);
+  let s = `<svg class="tree tree-wide" viewBox="0 0 600 176" role="img" aria-label="${esc(nome)}">`;
+  edges.forEach(([a,b]) => { const A = N[a], B = N[b], on = A.p >= 1; s += `<path d="M${A.x} ${A.y}L${B.x} ${B.y}" style="stroke:${on?"#22D3EE":"#232B3B"}" stroke-width="2.5"/>`; });
+  nodes.forEach(n => { const r = 22, c = 2*Math.PI*r, front = prox && prox.id === n.id;
+    if (n.p >= 1) s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#22D3EE"/><text x="${n.x}" y="${n.y+4}" text-anchor="middle" style="fill:#04161A;font-weight:700">${esc(n.cod)}</text>`;
+    else { s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:#0E131C;stroke:${front?"#7C5CFF":"#2E3748"}" stroke-width="2" ${front?'stroke-dasharray="4 4"':""}/>`;
+      if (n.p > 0) s += `<circle cx="${n.x}" cy="${n.y}" r="${r}" style="fill:none;stroke:#22D3EE" stroke-width="3" stroke-dasharray="${c*n.p} ${c}" transform="rotate(-90 ${n.x} ${n.y})"/>`;
+      s += `<text x="${n.x}" y="${n.y+4}" text-anchor="middle" style="fill:${n.p>0||front?"#E6E8EE":"#5A6377"};font-weight:600">${esc(n.cod)}</text>`; }
+    s += `<text x="${n.x}" y="${n.y+38}" text-anchor="middle" class="tl" style="fill:${n.p>=1?"#A3ABBD":front?"#C4B5FD":"#6E7891"}">${esc(n.nome)}</text>`; });
+  return s + `</svg>`;
+}
+function listaArvore(nodes){
+  const prox = nodes.find(n => n.p < 1 && !n.ini);
+  return `<div class="tree-list">${nodes.map(n => { const st = n.p >= 1 ? "dominado" : prox && prox.id === n.id ? (n.p > 0 ? "em progresso" : "próximo") : n.p > 0 ? "em progresso" : "bloqueado";
+    return `<div class="tn ${n.p>=1?"ok":prox && prox.id===n.id?"cur":n.p>0?"mid":"lock"}">${ring(n.p, 40, 5, n.p>=1?"#22D3EE":n.p>0?"#7C5CFF":"transparent", n.cod)}<span style="min-width:0;flex:1"><b>${esc(n.nome)}</b><span class="tiny dim" style="display:block">${st}</span></span><span class="mono small ${n.p>=1?"okc":"dim"}">${Math.round(n.p*100)}%</span></div>`; }).join("")}</div>`;
+}
+function cardArvore(t, k){
+  const nn = t.nodes.filter(n => !n.ini), prox = nn.find(n => n.p < 1), total = nn.length ? nn.reduce((a,n) => a + n.p, 0) / nn.length : 0;
+  return `<section class="card treecard ${TREE_TAB===k?"on":""}" data-tree="${k}"><div class="row between"><span class="k">Árvore · ${esc(t.nome)}</span><a class="tiny mono" href="${t.href}" style="color:var(--violet);text-decoration:none">${Math.round(total*100)}% ›</a></div>
+   <div style="margin-top:8px">${svgArvore(t.nodes, t.edges, t.nome)}${listaArvore(t.nodes)}</div>
+   <div class="small muted" style="margin-top:6px">${prox ? `Próximo destravamento: <b style="color:var(--text)">${esc(prox.nome)}</b>${t.dica ? ` · ${t.dica(prox)}` : ""}` : esc(t.fim)}</div></section>`;
+}
+function arvoreProgNodes(){ const nomes = {HTML:"Estrutura", CSS:"Estilo", Git:"Versões", JS:"Lógica", GitHub:"Publicar", DOM:"Interação", "v1.0":"BLESSAINT 1.0"};
+  return {nome:"Programação (mobile)", nodes: TREE.map(t => ({id:t.id, cod:t.id.length > 4 ? t.id.slice(0,4) : t.id, nome:nomes[t.id]||t.id, x:t.x, y:t.y, p:rngProg(t.a,t.b)})), edges:TREE_E}; }
+function arvoreClaude(){
+  const pn = n => { const its = CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova"); return its.filter(x => S.claude[x.id] && S.claude[x.id].done).length / (its.length || 1); };
+  const pf = S.claude.pf, pe = pf && pf.done ? Math.min(1, pct(pf)/.7) : 0;
+  const nodes = [{id:"n1",cod:"N1",nome:NIVEIS[0].nome,x:40,y:84,p:pn(1)},{id:"n2",cod:"N2",nome:"Avançado",x:170,y:40,p:pn(2)},{id:"n3",cod:"N3",nome:"Agentes",x:300,y:84,p:pn(3)},{id:"n4",cod:"N4",nome:"Construtor",x:430,y:40,p:pn(4)},{id:"ex",cod:"★",nome:"Expert",x:560,y:84,p:pe}];
+  return {nome:"Claude", href:"#claude", nodes, edges:[["n1","n2"],["n2","n3"],["n3","n4"],["n4","ex"]], fim:"Árvore completa: Expert em Claude.", dica: n => { const pc = proxClaude(); return pc ? `próxima: ${esc(nomeItem(pc))}` : ""; }};
+}
+const FAC_COD = [["redes","RED","Redes"],["segur","SEG","Segurança"],["matem","MAT","Matemática"],["program","PRG","Programação"],["nuvem","NUV","Nuvem"],["labvida","LAB","Labvida"],["algorit","ALG","Algoritmos"],["banco","BD","Banco de dados"],["estrutura","ED","Estruturas"],["sistemas","SO","Sistemas"],["engenharia","ES","Engenharia"]];
+function facCod(nome){ const s = nome.toLowerCase(); const m = FAC_COD.find(([k]) => s.includes(k)); return m ? m[1] : nome.replace(/[^A-Za-zÀ-ú]/g,"").slice(0,3).toUpperCase(); }
+function facCurto(nome){ const m = FAC_COD.find(([k]) => nome.toLowerCase().includes(k)); if (m) return m[2]; return nome.replace(/^(Introdução à|Fundamentos de|Introdução a)\s+/i,"").replace(/ de computadores$/i,"").replace(/ em ciência da computação.*$/i,"").replace(/^./, c => c.toUpperCase()).slice(0,22); }
+function arvoreFac(){
+  const pd = (S.fac.portal && S.fac.portal.disciplinas) || [], nomes = pd.length ? pd.map(d => d.nome) : S.fac.discs.filter(d => (d.sem||1) === (S.fac.sem||1)).map(d => d.nome);
+  const prog = nome => { const p = pd.find(d => d.nome === nome); const loc = S.fac.discs.find(d => d.nome.toLowerCase() === nome.toLowerCase()); let v = p ? (p.progresso||0)/100 : 0;
+    if (loc){ const its = (loc.topicos||[]).concat(loc.entregas||[]); if (its.length) v = Math.max(v, its.filter(x => x.ok).length/its.length); const m = media(loc); if (m !== null && m >= S.fac.min) v = 1; } return Math.min(1, v); };
+  const per = (S.fac.portal && S.fac.portal.periodo) || S.fac.sem || 1;
+  const lista = nomes.slice(0, 8), metade = Math.ceil(lista.length/2), cols = Math.max(1, metade), xs = i => cols === 1 ? 300 : 160 + i*(320/(cols-1));
+  const nodes = [{id:"ini", cod:per+"º", nome:"Período "+per, x:40, y:84, p: lista.length ? lista.reduce((a,n) => a + prog(n), 0)/lista.length : 0}];
+  const edges = [];
+  lista.forEach((n,i) => { const row = i < metade ? 0 : 1, col = row ? i - metade : i; nodes.push({id:"d"+i, cod:facCod(n), nome:facCurto(n), x:xs(col), y: row ? 128 : 40, p:prog(n)}); });
+  [0,1].forEach(row => { const ids = nodes.slice(1).filter(n => n.y === (row ? 128 : 40)).map(n => n.id); if (!ids.length) return; edges.push(["ini", ids[0]]); for (let k=1;k<ids.length;k++) edges.push([ids[k-1], ids[k]]); edges.push([ids[ids.length-1], "fim"]); });
+  nodes[0].p = nodes.slice(1).length ? Math.min(.99, nodes[0].p) : 0;
+  nodes.push({id:"fim", cod:(per+1)+"º", nome:"Período "+(per+1), x:560, y:84, p: nodes.slice(1).length && nodes.slice(1).every(n => n.p >= 1) ? 1 : 0});
+  const ini = nodes[0]; ini.p = 1; ini.ini = true; /* o período em curso já está destravado */
+  return {nome:"Faculdade", href:"#fac", nodes, edges, fim:"Período concluído. Rumo ao próximo!", dica: n => n.id === "fim" ? "feche todas as disciplinas" : "acompanhe pelo portal"};
+}
+function arvoreDesign(){
+  const c = extC("criadores"), g = idx => { let d = 0, t = 0; idx.forEach(mi => { d += modFeitas(c, mi); t += modTot(c.mods[mi]); }); return t ? d/t : 0; };
+  const nodes = [{id:"base",cod:"BAS",nome:"Base",x:40,y:84,p:g([0])},{id:"ps",cod:"PS",nome:"Photoshop",x:160,y:40,p:g([1,15])},{id:"ai",cod:"AI",nome:"Illustrator",x:160,y:128,p:g([2])},
+   {id:"fx",cod:"FX",nome:"Efeitos",x:290,y:40,p:g([6,8,9])},{id:"logo",cod:"LOG",nome:"Logotipos",x:290,y:128,p:g([3])},{id:"soc",cod:"SOC",nome:"Social media",x:420,y:40,p:g([4,5,11])},{id:"neg",cod:"$",nome:"Negócio",x:420,y:128,p:g([7,10,12,13,14])},
+   {id:"pro",cod:"PRO",nome:"Designer",x:560,y:84,p:extStats(c).p}];
+  return {nome:"Design", href:"#curso-criadores", nodes, edges:[["base","ps"],["base","ai"],["ps","fx"],["ai","logo"],["fx","soc"],["logo","neg"],["soc","pro"],["neg","pro"]], fim:"Designer completo.", dica: () => { const px = extProx(c); return px ? `continue em ${esc(px.m)}` : ""; }};
+}
+let TREE_TAB = (() => { try { return localStorage.getItem("ea-ttab") || "prog"; } catch(e){ return "prog"; } })();
+document.addEventListener("click", e => { const t = e.target.closest("[data-ttab]"); if (!t) return; TREE_TAB = t.dataset.ttab; try { localStorage.setItem("ea-ttab", TREE_TAB); } catch(x){}
+  $$("[data-ttab]").forEach(b => b.setAttribute("aria-selected", String(b === t))); $$("[data-tree]").forEach(c => c.classList.toggle("on", c.dataset.tree === TREE_TAB)); });
+const FRASE_DIA = () => FRASES[hash32(hoje()) % FRASES.length];
 
 /* ===================== eventos ===================== */
 document.addEventListener("click", e => {

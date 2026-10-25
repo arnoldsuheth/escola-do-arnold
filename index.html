@@ -385,6 +385,25 @@ pre code{background:none;padding:0;color:inherit}
 .stars5 button.on{color:var(--amber)}
 .note{border-left:3px solid var(--violet2);padding:8px 12px;background:var(--card2);border-radius:0 10px 10px 0;font-size:.9rem;margin-top:8px;gap:8px}
 .tabbar a{min-width:0}
+.tree .tl{font-family:var(--f-b);font-size:10.5px}
+.tree-list{display:none;flex-direction:column;gap:2px;position:relative}
+.tn{display:flex;align-items:center;gap:12px;padding:7px 4px;position:relative}
+.tn .ring{flex:none}
+.tn .ring text{fill:var(--text);font-family:var(--f-m);font-weight:700}
+.tn b{font-weight:600;font-size:.92rem;display:block;line-height:1.25}
+.tn.lock{opacity:.55}
+.tn.cur{background:linear-gradient(90deg,rgba(124,92,255,.14),transparent);border-radius:12px}
+.tn + .tn::before{content:"";position:absolute;left:23px;top:-8px;width:2px;height:12px;background:var(--line2)}
+.tn.ok + .tn::before{background:var(--cyan)}
+.frase{margin:10px 0 0;font-size:.95rem;color:var(--text);max-width:620px;line-height:1.45;border-left:3px solid var(--violet2);padding-left:12px}
+.frase span{color:var(--dim);font-size:.8rem;font-family:var(--f-m)}
+.trees{display:flex;flex-direction:column;gap:16px}
+.ttabs{display:none;gap:6px;overflow-x:auto;scrollbar-width:none}
+.ttabs::-webkit-scrollbar{display:none}
+.ttabs button{flex:none;font-weight:600;font-size:.82rem;padding:8px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line2);color:var(--muted)}
+.ttabs button[aria-selected="true"]{color:var(--text);border-color:var(--violet2);background:var(--card3)}
+@media (max-width:640px){.tree-wide{display:none}.tree-list{display:flex}.ttabs{display:flex}.trees{gap:10px}.trees .treecard{display:none}.trees .treecard.on{display:block}}
+@media (max-width:980px){.dash > .stack{display:contents}.o1{order:1}.o2{order:2}.o3{order:3}.o4{order:4}.o5{order:5}.o6{order:6}.o7{order:7}}
 .dday{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--text)}
 .dday:hover{border-color:var(--line2)}
 .arena h2{font-size:1.15rem}
@@ -460,10 +479,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 <div id="app"></div>
 <canvas id="confetti" hidden></canvas>
 <noscript>Ative o JavaScript para usar o Evolution Lab.</noscript>
-<script src="content.js?v=14"></script>
-<script src="cursos.js?v=14"></script>
-<script src="desafios.js?v=14"></script>
-<script src="ilus.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="content.js?v=15"></script>
+<script src="cursos.js?v=15"></script>
+<script src="desafios.js?v=15"></script>
+<script src="ilus.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
