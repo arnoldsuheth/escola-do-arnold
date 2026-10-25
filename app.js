@@ -672,7 +672,7 @@ function telaLogin(cofre){
    ${CREST_BIG}<div style="text-align:center"><span class="eyebrow">${sd.oi}</span><h1 style="margin-top:6px">Escola do Arnold</h1><p class="muted" style="margin:8px 0 0">Digite sua senha para continuar de onde parou.</p></div>
    <input type="text" name="username" value="${esc(cofre && cofre.user || HOST)}" autocomplete="username" hidden>
    <label class="field">Senha<input type="password" id="pw" autocomplete="current-password" required autofocus></label>
-   <label class="row small" style="gap:10px;cursor:pointer"><input type="checkbox" id="lembrar" checked style="width:20px;height:20px;accent-color:#FFC94A"> Manter conectado neste aparelho</label>
+   <label class="row small" style="gap:10px;cursor:pointer"><input type="checkbox" id="lembrar" checked style="width:20px;height:20px;accent-color:#22D3EE"> Manter conectado neste aparelho</label>
    <div class="err" id="lerr" role="alert"></div>
    <button class="btn gold" type="submit" id="lbtn">${ICO.lock} Entrar</button>
    ${cofre === "offline" ? `<p class="small muted" style="text-align:center">Sem internet e sem login salvo neste aparelho. Conecte-se para entrar.</p>` : ""}
