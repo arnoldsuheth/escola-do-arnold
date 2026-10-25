@@ -99,7 +99,17 @@
  function l3play(k){const c=clipOf[k]||k;[L3i,L3s].forEach(l=>{if(l)l.play(c);});}
  function initIcon(){if(L3i||!l3ok||root.hidden)return;try{L3i=Lion3D.create(icon.querySelector('canvas.lion-3d'),{model:'chip_prata',fps:20,maxDpr:2,dist:8.2,target:[0,1.45,0],motion:motionOn()});}catch(e){L3i=null;}if(!L3i)return;icon.classList.add('l3');{const m0=C.petMood(prefs.pet,C.clock().hour,C.clock().key);L3i.setBase(m0.base);L3i.setMood(m0.state);}if(motionOn()&&!document.hidden)L3i.start();else L3i.still();}
  function l3motion(){const m=motionOn();[L3i,L3s].forEach(l=>{if(!l)return;l.setMotion(m);if(m&&!document.hidden)l.start();else l.still();});}
- function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{model:'chip_prata',fps:30,maxDpr:2,dist:9.4,target:[0,1.5,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv,stageTap);{const m1=C.petMood(prefs.pet,C.clock().hour,C.clock().key);L3s.setBase(m1.base);L3s.setMood(m1.state);}if(motionOn())L3s.start();else L3s.still();}
+ function initStage(){if(L3s||!l3ok)return;const cv=panel.querySelector('.lion-stage-cv');try{L3s=Lion3D.create(cv,{model:'chip_prata',fps:30,maxDpr:2,dist:9.4,target:[0,1.5,0],motion:motionOn(),force:true});}catch(e){L3s=null;}if(!L3s){panel.querySelector('.lion-stage').hidden=true;return;}L3s.drag(cv,stageTap);
+  if(window.LionFX){try{const st=panel.querySelector('.lion-stage'),FX=LionFX.create(st);let sleeping=false;const o={play:L3s.play,setBase:L3s.setBase,setMood:L3s.setMood,start:L3s.start,stop:L3s.stop,setMotion:L3s.setMotion,dispose:L3s.dispose};
+   L3s.play=function(n){FX.scene(n);return o.play.apply(L3s,arguments);};
+   L3s.setBase=function(n){if(n==='sleepy'){if(!sleeping){sleeping=true;FX.scene('sleepy',Infinity);}}else if(sleeping){sleeping=false;FX.calm();}return o.setBase.apply(L3s,arguments);};
+   L3s.setMood=function(s){FX.setMood(s);return o.setMood.apply(L3s,arguments);};
+   L3s.start=function(){FX.start();return o.start.apply(L3s,arguments);};L3s.stop=function(){FX.stop();return o.stop.apply(L3s,arguments);};
+   L3s.setMotion=function(v){FX.setMotion(v);return o.setMotion.apply(L3s,arguments);};
+   L3s.dispose=function(){FX.stop();st.querySelectorAll('canvas.lion-fx').forEach(c=>c.remove());return o.dispose.apply(L3s,arguments);};
+   const m2=C.petMood(prefs.pet,C.clock().hour,C.clock().key);FX.setMood(m2.state);if(m2.base==='sleepy'){sleeping=true;FX.scene('sleepy',Infinity);}
+  }catch(e){}}
+  {const m1=C.petMood(prefs.pet,C.clock().hour,C.clock().key);L3s.setBase(m1.base);L3s.setMood(m1.state);}if(motionOn())L3s.start();else L3s.still();}
  panel.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open)panel.querySelectorAll('details').forEach(o=>{if(o!==d)o.open=false;});}));
  let tapN=-1;
  function stageTap(){const pick=[['hello','ok'],['cheer','ok'],['spin','ok'],['talk','water'],['oops','bad'],['cheer','ok'],['hello','water'],['talk','walk']];let i;do{i=Math.floor(Math.random()*pick.length);}while(i===tapN);tapN=i;const [clip,kind]=pick[i];if(L3s)L3s.play(clip);if(L3i)L3i.play(clip);const text=C.phrase('divertido',kind);advice.textContent=text;try{if(prefs.voiceName!=='__off'&&window.EvoFeedback&&EvoFeedback.clipFor(text))EvoFeedback.say(text);}catch(err){}}
@@ -128,10 +138,10 @@
  root.addEventListener('click',e=>{const b=e.target.closest('[data-pet]');if(!b)return;const k=b.dataset.pet;petSync();let r,m;
   if(k==='feed'){r=C.petFeed(prefs.pet);prefs.pet=r.pet;if(r.ok){commit();if(L3s)L3s.play('eat');if(L3i)L3i.play('eat');petSay(Math.random()<.5?'Mandou bem demais!':'Isso aí, craque!',true);}else petSay(r.why==='cheio'?'Estou cheio! Guarda o ⚡ pra depois.':'Faltou ⚡! Comer custa 4⚡. Estuda um pouco que eu ganho energia.');}
   else if(k==='drink'){r=C.petDrink(prefs.pet);prefs.pet=r.pet;if(r.ok){last.water=elapsed;commit();if(L3s)L3s.play('drink');if(L3i)L3i.play('drink');petSay('Água! Seu cérebro agradece e eu também.',true);}else petSay(r.why==='sem-racao'?'Faltou ⚡! Água custa 2⚡. Estuda um pouco que eu ganho.':'Estou sem sede agora. Beba você um copo por nós dois!');}
-  else if(k==='nap'){r=C.petNap(prefs.pet,C.clock().key);prefs.pet=r.pet;if(r.ok){commit();[L3s,L3i].forEach(l=>{if(l){l.setBase('sleepy');}});petSay('Zzz... só uma sonequinha.');setTimeout(renderPet,6000);}else petSay(r.why==='limite'?'Já tirei 3 sonecas hoje. Descanso de verdade é à noite!':r.why==='sem-racao'?'Faltou ⚡ pra dormir (1⚡). Estuda um pouquinho!':'Não estou com sono agora.');}
+  else if(k==='nap'){r=C.petNap(prefs.pet,C.clock().key);prefs.pet=r.pet;if(r.ok){last.nap=Date.now();commit();[L3s,L3i].forEach(l=>{if(l){l.setBase('sleepy');}});petSay('Zzz... só uma sonequinha.');setTimeout(renderPet,6000);}else petSay(r.why==='limite'?'Já tirei 3 sonecas hoje. Descanso de verdade é à noite!':r.why==='sem-racao'?'Faltou ⚡ pra dormir (1⚡). Estuda um pouquinho!':'Não estou com sono agora.');}
   else if(k==='play'){r=C.petPlay(prefs.pet,C.clock().key);prefs.pet=r.pet;if(r.ok){commit();react('cheer');petSay('Que divertido! Humor lá em cima. Agora bora estudar?',true);}else petSay(r.why==='ja-brincou'?'Já brincamos hoje! Amanhã tem mais.':'Faltou ⚡ pra brincar (3⚡). Estuda um pouquinho!');}
   if(r&&!r.ok)l3play(r.why==='sem-racao'||r.why==='limite'?'oops':'think');
-  if(r&&r.ok&&(k==='feed'||k==='drink')){const mm=C.petMood(prefs.pet,C.clock().hour,C.clock().key);if(mm.state==='feliz')setTimeout(()=>l3play('cheer'),2300);}
+  if(r&&r.ok&&(k==='feed'||k==='drink')){const mm=C.petMood(prefs.pet,C.clock().hour,C.clock().key);if(mm.state==='feliz')setTimeout(()=>{if(!last.nap||Date.now()-last.nap>9000)l3play('cheer');},2300);}
   if(r&&r.ok){const cost=C.PET.cost[k],pop=document.createElement('span');pop.className='pet-pop';pop.textContent='-'+cost+'⚡';b.appendChild(pop);setTimeout(()=>pop.remove(),1100);}
   m=renderPet();if(k==='nap'&&r&&r.ok)[L3s,L3i].forEach(l=>{if(l)l.setBase('sleepy');});});
  setInterval(()=>{if(root.hidden||document.hidden)return;const m=petRefresh(),k=C.clock().key;if(m.state==='fome'&&panel.hidden&&!sentToday()['pet:'+k]&&prefs.auto&&!prefs.focus&&!C.isQuiet(prefs)){markSent('pet:'+k);speak(petLines.fome[Math.floor(Math.random()*petLines.fome.length)]);}},60000);

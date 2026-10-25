@@ -29,3 +29,4 @@
 @keyframes pet-shine{0%,70%{background-position:150% 0}100%{background-position:-50% 0}}
 .pet-bar.low .pf{animation:pet-blink 1s steps(2) infinite}@keyframes pet-blink{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){#lion-panel .pet-actions button::after,.pet-pop{animation:none}.pet-pop{opacity:1}}
+.lion-stage-btns{position:relative;z-index:3}
