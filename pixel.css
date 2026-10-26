@@ -30,3 +30,5 @@
 .pet-bar.low .pf{animation:pet-blink 1s steps(2) infinite}@keyframes pet-blink{50%{opacity:.35}}
 @media(prefers-reduced-motion:reduce){#lion-panel .pet-actions button::after,.pet-pop{animation:none}.pet-pop{opacity:1}}
 .lion-stage-btns{position:relative;z-index:3}
+
+@media(max-width:430px){#lion-panel header strong{font-size:17px;white-space:nowrap}#lion-panel header .lion-mood{font-size:12px;padding:4px 8px}}

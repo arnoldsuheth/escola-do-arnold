@@ -36,7 +36,7 @@ test('Lion Tamagotchi: ⚡ a cada 10 XP, limite de 40, migração e sem retroati
 test('Lion Tamagotchi: alimentar, beber, soneca e humor',()=>{
  assert.equal(C.petFeed({ver:2,fome:50,racao:4}).pet.fome,80);assert.equal(C.petFeed({ver:2,fome:50,racao:3}).why,'sem-racao');assert.equal(C.petFeed({ver:2,fome:99,racao:9}).why,'cheio');assert.equal(C.petFeed({ver:2,fome:50,racao:9}).pet.racao,5);
  assert.equal(C.petDrink({ver:2,sede:30,racao:2}).pet.sede,70);assert.equal(C.petDrink({ver:2,sede:30,racao:1}).why,'sem-racao');const pl=C.petPlay({ver:2,racao:5},'d1');assert.equal(pl.pet.racao,2);assert.equal(C.petPlay(pl.pet,'d1').why,'ja-brincou');assert.equal(C.petPlay({ver:2,racao:2},'d2').why,'sem-racao');
- const p={ver:2,racao:5,energia:10,napDay:'2026-10-26',napN:3};assert.equal(C.petNap(p,'2026-10-26').why,'limite');assert.equal(C.petNap(p,'2026-10-27').ok,true);assert.equal(C.petNap({energia:95},'x').why,'sem-sono');
+ const p={ver:2,racao:5,energia:10,napDay:'2026-10-26',napN:3};assert.equal(C.petNap(p,'2026-10-26').why,'limite');assert.equal(C.petNap(p,'2026-10-27').ok,true);assert.equal(C.petNap({energia:95},'x').why,'sem-sono');assert.equal(C.petNap({ver:2,racao:0,energia:96},'x',23).ok,true);assert.equal(C.petNap({ver:2,racao:0,energia:96},'x',14).why,'sem-sono');
  assert.equal(C.petMood({fome:20,sede:80,energia:80},14,'x').state,'fome');assert.equal(C.petMood({fome:80,sede:10,energia:80},14,'x').label,'Com sede');
  assert.equal(C.petMood({fome:80,sede:80,energia:80},23,'x').state,'sono');assert.equal(C.petMood({fome:80,sede:80,energia:80},14,'x').state,'feliz');
 });
