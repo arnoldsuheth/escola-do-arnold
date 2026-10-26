@@ -189,7 +189,12 @@ function missoesDia(){
   if (cDone >= 2) list.push({k:["claude"], n:2, ic:"ia", t:"Claude: aula extra", s:"Segunda aula concluída", href:"#claude", xp:"até 50"});
   else if (c2) list.push({k:["claude"], n:2, ic:"ia", t:`Claude: aula extra · ${nomeItem(c2)}`, s:c2.titulo, href:`#aula-${c2.id}`, xp:"até 50"});
   if (dow >= 1 && dow <= 4) { if (pDone >= 2) list.push({k:["prog"], n:2, ic:"code", t:"Programação: aula extra", s:"Segunda aula concluída", href:"#prog", xp:"até 50"}); else if (p2) list.push({k:["prog"], n:2, ic:"code", t:`Programação: aula extra ${p2[0]}`, s:p2[2], href:`#prog-${p2[0]}`, xp:"até 50"}); }
-  if (fac) list.push({k:["fac"], ic:"fac", t:`Faculdade: ${fac.t.t}`, s:fac.d.nome, href:"#fac", xp:"+10"});
+  if (feitoHoje(["fac"])) list.push({k:["fac"], ic:"fac", t:"Faculdade · Ciência da Computação", s:"Atividade de hoje concluída", href:"#fac", xp:"+10"});
+  else if (fac) list.push({k:["fac"], ic:"fac", t:`Faculdade: ${fac.t.t}`, s:fac.d.nome, href:"#fac", xp:"+10"});
+  else {
+    const entrega = S.fac.discs.flatMap(d => (d.entregas||[]).filter(t => !t.ok).map(t => ({d, t}))).sort((a,b) => (a.t.data||"9999").localeCompare(b.t.data||"9999"))[0];
+    list.push({k:["fac"], ic:"fac", t:entrega ? `Faculdade: ${entrega.t.t}` : "Faculdade · Ciência da Computação", s:entrega ? entrega.d.nome : "Estude a disciplina do dia e registre um tópico ou atividade na Faculdade", href:"#fac", xp:entrega ? "+50" : "+10"});
+  }
   list.push({k:["desafio"], ic:"sword", t:"Desafio do dia", s: dd && dd.done ? `Feito: ${dd.best}/${dd.total}` : "6 perguntas sorteadas da sua carreira", href:"#desafio-dia", xp:"até 30"});
   if (pa) list.push({k:["retry"], ic:"bolt", t:"Revisão relâmpago", s:`Refaça o quiz de ${nomeItem(pa)}: ${pa.titulo}`, href:`#aula-${pa.id}-quiz`, xp:"+XP"});
   return {rest:false, list:list.slice(0, 7)};
