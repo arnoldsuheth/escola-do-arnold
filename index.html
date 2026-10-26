@@ -555,6 +555,41 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 #lion-panel details>.lion-note:first-of-type{margin-top:2px}
 @keyframes lion-open{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){#lion-panel details>:not(summary){animation:none}}
+
+/* Revisão responsiva: navegação, trilhas e formulários. */
+@media(max-width:860px){
+ .topbar{justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px))}
+ .topbar .brand{min-width:0;gap:9px;flex:1 1 138px;margin-right:0}
+ .topbar .brand>span{min-width:0}.topbar .brand b{font-size:1rem;line-height:1.2}
+ .topbar .crest{width:38px;height:42px;flex-shrink:0}
+ .topbar #pills{flex:0 0 auto;gap:6px!important;margin-left:auto}
+ .topbar .pill{padding:7px 9px;font-size:.72rem;white-space:nowrap}
+ .tabbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;align-items:stretch}
+ .tabbar a{min-width:0;min-height:52px;padding:6px 0;font-size:.62rem;line-height:1.2;justify-content:center}
+ .tabbar a span{white-space:nowrap;max-width:100%}
+ .tabbar a svg{width:21px;height:21px;flex-shrink:0}
+ .wrap{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+ .modal-in>form{width:100%;min-width:0}.modal-in label{display:flex;flex-direction:column;gap:6px;text-align:left;min-width:0}
+ .modal-in input,.modal-in select,.modal-in textarea{max-width:100%;min-width:0}
+ .modal-in .row>.btn{flex:1 1 110px}
+ .sheet-in,.modal-in{max-height:calc(100dvh - 40px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overscroll-behavior:contain}
+ .lesson pre{overflow:auto;max-width:100%}.lesson table{display:block;max-width:100%;overflow-x:auto}
+ .sites-hub summary>span{min-width:0;text-align:right;line-height:1.4}
+ body:has(.modal) #lion-companion,body:has(.sheet) #lion-companion{visibility:hidden}
+}
+@media(max-width:600px){
+ .node-wrap{transform:translateX(clamp(-42px,var(--node-offset,0px),42px))!important}
+ .node-lbl{width:min(180px,52vw);max-width:min(180px,52vw);overflow-wrap:anywhere}
+ .unit{max-width:100%;min-width:0}.unit h3,.unit .small{overflow-wrap:anywhere}
+ .sites-hub .site-stats{gap:7px}.sites-hub .site-stats .pill{white-space:normal;max-width:100%;line-height:1.4}
+}
+@media(max-width:360px){
+ .topbar .brand{flex-basis:100%}.topbar .brand b{font-size:1.02rem}
+ .topbar #pills{margin-left:0}.topbar .pill{padding:6px 10px}
+ .tabbar a{font-size:.58rem}.tabbar a svg{width:20px;height:20px}
+ .sites-hub summary{font-size:.95rem;gap:8px}.sites-hub summary .tiny{font-size:.65rem}
+}
+
 </style>
 <link rel="stylesheet" href="lion.css?v=41"><link rel="stylesheet" href="pixel.css?v=41">
 <link rel="stylesheet" href="effects.css?v=41">
@@ -569,7 +604,7 @@ a.tn{color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
 <script src="ilus.js?v=17"></script>
 <script src="progression.js?v=41"></script>
 <script src="feedback.js?v=41"></script>
-<script src="app.js?v=43"></script>
+<script src="app.js?v=44"></script>
 <script src="practice.js?v=41"></script>
 <script src="lion-core.js?v=41"></script>
 <script src="lion3d.js?v=41"></script>

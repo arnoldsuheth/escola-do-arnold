@@ -398,7 +398,7 @@ function shell(){
    <div class="spacer"></div><div class="sync sync-ind">${syncHTML()}</div></aside>
   <div class="main"><header class="topbar"><a class="brand" href="#hoje">${crestSVG()}<span><b>Evolution <span class="gtext">Lab</span></b></span></a><div class="crumb" id="crumb" aria-hidden="true"></div><div id="pills" class="row" style="gap:8px;flex-wrap:nowrap"></div></header>
    <main id="view" class="wrap"></main></div></div>
-  <nav class="tabbar" aria-label="Seções">${NAV.filter(n => NAV_TAB.includes(n[0])).map(([k,t,i]) => `<a href="#${k}" data-nav="${k}">${ICO[i]}<span>${t}</span></a>`).join("")}</nav>`;
+  <nav class="tabbar" aria-label="Seções">${NAV.filter(n => NAV_TAB.includes(n[0])).map(([k,t,i]) => `<a href="#${k}" data-nav="${k}" aria-label="${t}">${ICO[i]}<span>${k === "sites" ? "Sites" : k === "cursos" ? "Cursos" : t}</span></a>`).join("")}</nav>`;
 }
 function paintTop(){
   const p = $("#pills"); if (!p) return; const lv = nivel(), st = streak(), hx = xpDia(hoje());
@@ -535,7 +535,7 @@ function viewClaude(){
     return `<div class="unit" style="background:${UNIT_BG[ni]}"><div style="min-width:0"><span class="eyebrow">nível_${nv.n} · ${f}/${its.length}</span><h3 style="margin-top:4px">${esc(nv.nome)}</h3><div class="small muted">${esc(nv.desc)}</div></div>${nivelDone(nv.n) ? `<span class="tag gold">${ICO.check} concluído</span>` : ""}</div>` +
       its.map(x => { const r = S.claude[x.id], done = r && r.done, cur = pc && pc.id === x.id, off = ZIG[idx++ % ZIG.length];
         const inner = x.tipo === "prova" ? ICO.star : x.tipo === "rev" ? ICO.bolt : done ? ICO.check : numAula(x.id);
-        return `<div class="node-wrap" style="transform:translateX(${off}px)">${cur ? `<span class="bubble">PRÓXIMA</span>` : ""}<a class="node ${done?"done":""} ${cur?"cur":""} ${x.tipo?"rev":""}" href="#aula-${x.id}" aria-label="${esc(nomeItem(x)+": "+x.titulo)}">${inner}</a><div class="node-lbl">${esc(x.tipo ? x.titulo : x.titulo)}<small>${esc(nomeItem(x))} · ${x.min} min${DATAS_CLAUDE[x.id] ? " · "+fmtData(DATAS_CLAUDE[x.id]) : ""}</small>${done ? starRow(estrelas(r)) : ""}</div></div>`; }).join("");
+        return `<div class="node-wrap" style="--node-offset:${off}px;transform:translateX(var(--node-offset))">${cur ? `<span class="bubble">PRÓXIMA</span>` : ""}<a class="node ${done?"done":""} ${cur?"cur":""} ${x.tipo?"rev":""}" href="#aula-${x.id}" aria-label="${esc(nomeItem(x)+": "+x.titulo)}">${inner}</a><div class="node-lbl">${esc(x.tipo ? x.titulo : x.titulo)}<small>${esc(nomeItem(x))} · ${x.min} min${DATAS_CLAUDE[x.id] ? " · "+fmtData(DATAS_CLAUDE[x.id]) : ""}</small>${done ? starRow(estrelas(r)) : ""}</div></div>`; }).join("");
   }).join("")}
   ${S.claude.pf && pct(S.claude.pf) >= .7 ? `<div style="width:100%;max-width:620px;margin-top:24px">${certificado()}</div>` : ""}
   </div></div>`;
