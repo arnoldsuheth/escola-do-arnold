@@ -595,38 +595,10 @@ function textoAula(id){
 }
 
 /* ===================== PROGRAMAÇÃO ===================== */
-function viewProg(){
-  const ps = progStats(), pp = proxProg(), vazio = Object.keys(S.prog).length === 0;
-  return `<div class="stack fade">
-  <section class="course-hero" style="--acc:linear-gradient(90deg,#7C5CFF,#A78BFA)"><div class="hero-grid">
-   <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--violet)">curso_02 · front-end</span><h1>Programação</h1>
-    <p class="muted" style="margin:0;font-size:1.05rem">HTML, CSS, Git e JavaScript construindo o site da BLESSAINT. Você digita o código, o Claude explica e corrige.</p>
-    <div class="row"><span class="tag pg">51 aulas</span><span class="tag pg">5 fases</span><span class="tag gold">${ps.done} feitas · nota ${f1(ps.nota)}</span></div>
-    ${pp ? `<div class="row"><button class="btn gold" data-sheet="${pp[0]}">${ICO.arrow} Próxima: Aula ${pp[0]}</button></div>` : ""}</div>
-   <div class="stack" style="gap:12px">${PROG_FASES.map(f => { const its = PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate), d = its.filter(a => S.prog[a[0]] && S.prog[a[0]].done).length; return `<div><div class="row between"><b>${f.nome}</b><span class="small dim num">${d}/${its.length}</span></div><div class="bar" style="margin-top:6px"><i style="width:${Math.round(d/its.length*100)}%"></i></div></div>`; }).join("")}</div>
-  </div></section>
-  ${arenaMini("prog")}
-  ${vazio ? `<section class="card row between"><div style="min-width:0;flex:1"><span class="tag gold">Histórico disponível</span><h3 style="margin-top:10px">Aulas anteriores ainda não importadas</h3><p class="small muted" style="margin:6px 0 0">Seu diário registra as aulas 0 a 5 concluídas (quizzes 5/5, 4/8, 6/7, 5/7, 4/7 e 4/8). Elas ainda não entram no progresso desta plataforma. A importação só acontece quando você escolher.</p></div><button class="btn gold" data-import-hist="1">Importar histórico</button></section>` : ""}
-  <section class="card"><div class="row between"><h3>${ICO.sword.replace("<svg","<svg style='width:20px;height:20px;vertical-align:-4px;color:var(--red)'")} Bugs a corrigir</h3><span class="small dim mono">seus pontos fracos · pratique e registre a avaliação na Trajetória</span></div>
-   <div class="stack" style="gap:10px;margin-top:14px">${PROG_PONTOS_FRACOS.map((p,k) => { const dead = !!S.chefes[k]; return `<button class="boss ${dead?"dead":""}" data-boss="${k}" aria-pressed="${dead}"><span class="tick" aria-checked="${dead}"></span><span class="hp"><span class="t" style="font-weight:800;display:block">${esc(p)}</span><span class="bar" style="height:7px;margin-top:8px;display:block"><i style="width:${dead?0:100}%;background:linear-gradient(90deg,#F87171,#F472B6)"></i></span></span><span class="tiny dim mono">${dead?"corrigido":"aberto"}</span></button>`; }).join("")}</div></section>
-  ${PROG_FASES.map(f => `<section><div class="row between" style="margin:8px 0 10px"><h3>Fase ${esc(f.nome)}</h3></div><div class="list">${PROG_AULAS.filter(a => a[0] >= f.de && a[0] <= f.ate).map(progRow).join("")}</div></section>`).join("")}
-  <p class="small dim">Datas previstas do cronograma original. Depois da Aula 50 vem a Fase 2: JSON, React, back-end e banco de dados.</p>
-  </div>`;
-}
-function progRow([n,d,t]){ const r = S.prog[n] || {}; return `<button class="li" data-sheet="${n}"><span class="tick" aria-checked="${!!r.done}"></span><span style="min-width:0"><b style="display:block;line-height:1.3">Aula ${n} · ${esc(t)}</b><span class="tiny dim">previsto ${fmtData(d)}</span></span>${r.tot ? `<span class="grade">${f1(r.ok/r.tot*10)}</span>` : `<span class="dim">${ICO.arrow.replace("<svg","<svg style='width:18px;height:18px'")}</span>`}</button>`; }
-function abrirSheet(n){
-  const a = PROG_AULAS.find(z => String(z[0]) === String(n)); const r = S.prog[a[0]] || {};
-  fecharModal(); const s = document.createElement("div"); s.className = "sheet";
-  s.innerHTML = `<div class="sheet-in" role="dialog" aria-modal="true"><div class="row between"><span class="tag pg">Aula ${a[0]} · previsto ${fmtData(a[1])}</span><button class="btn sm ghost" data-close aria-label="Fechar">Fechar</button></div>
-   <h2 style="font-size:1.4rem">${esc(a[2])}</h2>
-   <button class="check" role="checkbox" aria-checked="${!!r.done}" data-prog="${a[0]}"><span class="box"></span><span class="t">Aula concluída</span><span class="xp">+20 XP</span></button>
-   <div><b class="small">Quantas questões tinha o quiz?</b><div class="chips" style="margin-top:8px">${[5,6,7,8,10,12,15].map(v => `<button class="chip" aria-pressed="${r.tot===v}" data-ptot="${a[0]}:${v}">${v}</button>`).join("")}</div></div>
-   ${r.tot ? `<div><b class="small">Quantas você acertou?</b><div class="chips" style="margin-top:8px">${[...Array(r.tot+1).keys()].map(v => `<button class="chip" aria-pressed="${r.ok===v}" data-pok="${a[0]}:${v}">${v}</button>`).join("")}</div></div>` : ""}
-   <div class="row"><button class="btn gold" data-copy-prog="${a[0]}">${ICO.copy} Pedir esta aula ao Claude</button></div>
-   <p class="tiny dim" style="margin:0">O botão copia "Vamos estudar a Aula ${a[0]}…". Cole na conversa do Projeto.</p></div>`;
-  document.body.appendChild(s);
-  s.addEventListener("click", e => { if (e.target === s || e.target.closest("[data-close]")) fecharModal(); });
-}
+function courseAdapter(){ EvoCourse.mount({state:()=>S,change:(fn,txt)=>act(fn,"prog",txt),feedback:ok=>som(ok?"ok":"bad")}); }
+function viewProg(){courseAdapter();return EvoCourse.home();}
+function viewProgLesson(id){courseAdapter();return EvoCourse.lesson(id);}
+function abrirSheet(n){fecharModal();if(location.hash!=="#prog-"+n)location.hash="prog-"+n;else render(true);}
 
 /* ===================== FACULDADE ===================== */
 function viewFac(){
@@ -828,7 +800,7 @@ function render(keep){
   if (!S.presentes) checarPresentes(false);
   const aq = r.startsWith("aula-") && r.endsWith("-quiz"), aid = aq ? r.slice(5, -5) : r.slice(5);
   const dk = r === "desafio-dia" ? "dia:" + hoje() : r.startsWith("desafio-") ? r.slice(8).replace(/-(\d+|boss)$/, ":$1") : null;
-  const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProg() : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : (r === "fac" || r.startsWith("fac-")) ? viewFac() : r === "trajetoria" ? viewTrajetoria() : r === "sites" ? viewSites() : r === "presentes" ? viewPresentes() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(mm ? mm[1] : r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
+  const v = r.startsWith("aula-") ? viewAula(aid) : r === "arena" ? viewArena() : dk ? viewDesafio(dk) : r.startsWith("prog-") ? viewProgLesson(r.slice(5)) : r === "claude" ? viewClaude() : r === "prog" ? viewProg() : (r === "fac" || r.startsWith("fac-")) ? viewFac() : r === "trajetoria" ? viewTrajetoria() : r === "sites" ? viewSites() : r === "presentes" ? viewPresentes() : r === "perfil" ? viewPerfil() : r === "cursos" ? viewCursos() : r.startsWith("curso-") ? viewCurso(mm ? mm[1] : r.slice(6)) : r === "violao" ? viewViolao() : r === "livros" ? viewLivros() : viewHoje();
   $("#view").innerHTML = v;
   heroInit();
   paintTop(); $$(".sync-ind").forEach(el => el.innerHTML = syncHTML());
@@ -836,7 +808,6 @@ function render(keep){
   else if (mm) setTimeout(() => { const d = document.querySelector(`details[data-mod="${mm[1]}:${mm[2]}"]`); const t = d && (d.querySelector(".les.nx") || d); t && t.scrollIntoView({block:"center"}); }, 80);
   else if (r.startsWith("fac-")) setTimeout(() => { const t = document.getElementById("disc-" + r.slice(4)); t && t.scrollIntoView({block:"start"}); }, 80);
   if (aq && !keep){ QZ[aid] = {i:0, pick:null, checked:false, res:[], combo:0, maxCombo:0}; repintarQuiz(aid); setTimeout(() => { const z = $("#quiz"); z && z.scrollIntoView({block:"start"}); }, 60); }
-  if (r.startsWith("prog-") && !keep && PROG_AULAS.some(a => String(a[0]) === r.slice(5))) setTimeout(() => abrirSheet(r.slice(5)), 30);
   document.title = (r.startsWith("aula-") ? ((CURSO_CLAUDE.find(x => x.id === aid)||{}).titulo || "Aula") + " · " : "") + "Evolution Lab";
 }
 /* Saudação que recolhe e frase com efeito de digitação (uma vez por dia; sem movimento se o aparelho pedir) */

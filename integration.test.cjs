@@ -9,7 +9,7 @@ function load(){
    atob:s=>Buffer.from(s,'base64').toString('binary'),btoa:s=>Buffer.from(s,'binary').toString('base64')};
  ctx.window=ctx;
  vm.createContext(ctx);
- for(const n of ['content.js','cursos.js','desafios.js','ilus.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+n,'utf8'),ctx);
+ for(const n of ['programacao.js','course-ui.js','content.js','cursos.js','desafios.js','ilus.js'])vm.runInContext(fs.readFileSync(__dirname+'/'+n,'utf8'),ctx);
  let source=fs.readFileSync(__dirname+'/app.js','utf8').split('/* ===================== início ===================== */')[0];
  source+='\npersist=()=>{};paintTop=()=>{};som=()=>{};floatXP=()=>{};window.testAPI={blank,norm,act,legacy:xpLegacy,total:xpTotal,snapshot:scoreSnapshot,level:nivel,claudeStats,progStats,facStats,viewHoje,viewTrajetoria,parts:xpPartes,importState:o=>{S=norm(o);},state:()=>S,reviewKey:weekKey};})();';
  vm.runInContext(source,ctx);return ctx.testAPI;

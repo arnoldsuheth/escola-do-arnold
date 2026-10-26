@@ -545,13 +545,7 @@ quiz:[
 const DATAS_CLAUDE = {a1:"2026-10-25",a2:"2026-10-31",a3:"2026-11-01",f1:"2026-11-01",r1:"2026-11-07",a4:"2026-11-08",a5:"2026-11-14",a6:"2026-11-15",a7:"2026-11-21",r2:"2026-11-22",a8:"2026-11-28",a9:"2026-11-29",a10:"2026-12-05",a11:"2026-12-06",r3:"2026-12-12",a12:"2026-12-13",a13:"2026-12-19",a14:"2026-12-20",a15:"2026-12-26",a16:"2026-12-27",r4:"2027-01-02",k1:"2027-01-03",k2:"2027-01-09",k3:"2027-01-10",k4:"2027-01-16",k5:"2027-01-17",d1:"2027-01-23",d2:"2027-01-24",d3:"2027-01-30",d4:"2027-01-31",d5:"2027-02-06",s1:"2027-02-07",s2:"2027-02-13",s3:"2027-02-14",s4:"2027-02-20",s5:"2027-02-21",g1:"2027-02-27",g2:"2027-02-28",g3:"2027-03-06",g4:"2027-03-07",g5:"2027-03-13",r5:"2027-03-14",m1:"2027-03-20",m2:"2027-03-21",m3:"2027-03-27",m4:"2027-03-28",m5:"2027-04-03",x1:"2027-04-04",x2:"2027-04-10",x3:"2027-04-11",x4:"2027-04-17",x5:"2027-04-18",c1:"2027-04-24",c2:"2027-04-25",c3:"2027-05-01",c4:"2027-05-02",c5:"2027-05-08",r6:"2027-05-09",pf:"2027-05-15"};
 
 /* ============ CURSO DE PROGRAMAÇÃO (cronograma BLESSAINT) ============ */
-const PROG_FASES = [
- {nome:"HTML", de:0, ate:8},
- {nome:"CSS", de:9, ate:24},
- {nome:"Git e GitHub", de:25, ate:28},
- {nome:"JavaScript", de:29, ate:39},
- {nome:"JS no site", de:40, ate:50}
-];
+const PROG_FASES = window.EVO_COURSE_DATA.phases.map(p=>({nome:p.name,de:p.start,ate:p.end}));
 const PROG_AULAS = [
  [0,"2026-10-15","Como a web funciona, VS Code, Live Server, 1º index.html"],
  [1,"2026-10-15","Anatomia do HTML: tags, elementos, atributos, head e body"],
@@ -605,7 +599,8 @@ const PROG_AULAS = [
  [49,"2027-01-07","Carrinho simulado 2: remover itens, total e salvar"],
  [50,"2027-01-11","Revisão final + publicar BLESSAINT versão 1.0"]
 ];
-const PROG_PONTOS_FRACOS = ["Atributos: atributo sempre tem o sinal de =","Só um <h1> por página","Trocar = apagar o antigo e digitar por cima","Ordem de fechamento: o último que abre é o primeiro que fecha"];
-const PROG_HISTORICO = {0:[5,5],1:[4,8],2:[6,7],3:[5,7],4:[4,7],5:[4,8]};
+PROG_AULAS.push(...window.EVO_COURSE_DATA.lessons.filter(x=>x.id>50).map(x=>[x.id,"",x.title]));
+const PROG_PONTOS_FRACOS = ["Distinguir atributos com valor e booleanos", "Organizar títulos por hierarquia", "Diagnosticar CSS antes de usar !important", "Conferir fechamento e aninhamento das tags"];
+const PROG_HISTORICO = {};
 
 const FAC_SUGESTOES = ["Algoritmos e lógica de programação","Matemática para computação","Cálculo","Arquitetura de computadores","Pensamento computacional","Comunicação e expressão"];
