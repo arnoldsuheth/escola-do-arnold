@@ -109,7 +109,7 @@ const nomeItem = x => x.tipo ? x.titulo : `Aula ${numAula(x.id)}`;
 const pct = r => r && r.total ? r.best / r.total : 0;
 const estrelas = r => !r || !r.done ? 0 : pct(r) >= .9 ? 3 : pct(r) >= .7 ? 2 : 1;
 function nivelDone(n){ return CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova").every(x => S.claude[x.id] && S.claude[x.id].done); }
-function claudeTitulo(){ if (S.claude.pf && pct(S.claude.pf) >= .7) return "Expert em Claude"; const t = ["Iniciante","Usuário","Usuário avançado","Agente","Construtor"]; let k = 0; for (let n=1;n<=4;n++){ if (nivelDone(n)) k = n; else break; } return t[k]; }
+function claudeTitulo(){ if (S.claude.pf && pct(S.claude.pf) >= .7) return "Expert em Claude"; const t = ["Iniciante","Usuário","Usuário avançado","Agente","Construtor","Especialista","Estrategista"]; let k = 0; for (let n=1;n<=6;n++){ if (nivelDone(n)) k = n; else break; } return t[k]; }
 function claudeStats(){ let done = 0, ps = []; CURSO_CLAUDE.forEach(x => { const r = S.claude[x.id]; if (r && r.done){ done++; if (r.total) ps.push(pct(r)); } }); return {done, total:CURSO_CLAUDE.length, p:done/CURSO_CLAUDE.length, nota: ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length*10 : null}; }
 function progStats(){ let done = 0, ps = []; PROG_AULAS.forEach(([n]) => { const r = S.prog[n]; if (r && r.done){ done++; if (r.tot) ps.push(r.ok/r.tot); } }); return {done, total:PROG_AULAS.length, p:done/PROG_AULAS.length, nota: ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length*10 : null}; }
 function media(d){ const v = ["av1","av2","av3"].map(k => d.notas && d.notas[k]).filter(x => typeof x === "number"); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
@@ -474,12 +474,12 @@ function heatmap(sem){
 const ZIG = [0, 70, 105, 70, 0, -70, -105, -70];
 function viewClaude(){
   const cs = claudeStats(), pc = proxClaude(); let idx = 0;
-  const UNIT_BG = ["var(--card)","var(--card)","var(--card)","var(--card)"];
+  const UNIT_BG = NIVEIS.map(() => "var(--card)");
   return `<div class="stack fade">
   <section class="course-hero" style="--acc:linear-gradient(90deg,#F59E0B,#F472B6)"><div class="hero-grid">
    <div class="stack" style="gap:12px"><span class="eyebrow" style="color:var(--amber)">curso_01 · ia</span><h1>Curso de Claude</h1>
-    <p class="muted" style="font-size:1.05rem;margin:0">Do zero ao avançado: como a IA funciona, como pedir bem, o app inteiro, agentes, Claude Code e a API. Tudo em português, com prática na BLESSAINT.</p>
-    <div class="row"><span class="tag cl">16 aulas</span><span class="tag cl">4 revisões</span><span class="tag cl">prova final</span><span class="tag gold">${cs.done}/${cs.total} feitas</span></div>
+    <p class="muted" style="font-size:1.05rem;margin:0">Do zero ao avançado: como a IA funciona, como pedir bem, o app inteiro, agentes, Claude Code e a API, mais as 5 frentes (Chat, Code, Cowork, Agents e Design), skills e casos de uso em marketing, apps e conteúdo. Tudo em português, com prática na BLESSAINT.</p>
+    <div class="row"><span class="tag cl">${AULAS.length} aulas</span><span class="tag cl">${CURSO_CLAUDE.filter(x => x.tipo === "rev").length} revisões</span><span class="tag cl">prova final</span><span class="tag gold">${cs.done}/${cs.total} feitas</span></div>
     <div class="row">${pc ? `<a class="btn gold" href="#aula-${pc.id}">${cs.done ? "Continuar" : "Começar"}: ${esc(nomeItem(pc))}</a>` : ""}<button class="btn ghost" data-intro="1">Como funciona</button></div></div>
    <figure class="fig ill" style="justify-self:center;width:100%">${ILUS.capaClaude()}</figure>
   </div></section>
@@ -719,6 +719,8 @@ function medalhas(){
    ["Gabarito","Acertar tudo num quiz", Object.values(S.claude).some(r => r.total && r.best === r.total), "#22D3EE"],
    ["Fundamentos","Fechar o nível 1 de Claude", nivelDone(1), "#F59E0B"],
    ["Agente","Fechar o nível 3 de Claude", nivelDone(3), "#A78BFA"],
+   ["Frentes","Fechar o nível 5 de Claude", nivelDone(5), "#22D3EE"],
+   ["Aplicado","Fechar o nível 6 de Claude", nivelDone(6), "#34D399"],
    ["Expert em Claude","Passar na prova final", !!(S.claude.pf && pct(S.claude.pf) >= .7), "#22D3EE"],
    ["Zero bugs","Corrigir todos os pontos fracos", PROG_PONTOS_FRACOS.every((_,k) => S.chefes[k]), "#F87171"],
    ["Fase HTML","Concluir aulas 0 a 8", PROG_AULAS.filter(a => a[0] <= 8).every(a => S.prog[a[0]] && S.prog[a[0]].done), "#A78BFA"],
@@ -1142,8 +1144,8 @@ function arvoreClaude(){
   const pn = n => { const its = CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova"); return its.filter(x => S.claude[x.id] && S.claude[x.id].done).length / (its.length || 1); };
   const pf = S.claude.pf, pe = pf && pf.done ? Math.min(1, pct(pf)/.7) : 0;
   const hl = n => { const its = CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova"), a = its.find(x => !(S.claude[x.id] && S.claude[x.id].done)) || its[0]; return a ? "#aula-" + a.id : "#claude"; }, pv = CURSO_CLAUDE.find(x => x.tipo === "prova");
-  const nodes = [{id:"n1",cod:"N1",nome:NIVEIS[0].nome,x:40,y:84,p:pn(1),href:hl(1)},{id:"n2",cod:"N2",nome:"Avançado",x:170,y:40,p:pn(2),href:hl(2)},{id:"n3",cod:"N3",nome:"Agentes",x:300,y:84,p:pn(3),href:hl(3)},{id:"n4",cod:"N4",nome:"Construtor",x:430,y:40,p:pn(4),href:hl(4)},{id:"ex",cod:"★",nome:"Expert",x:560,y:84,p:pe,href:pv ? "#aula-" + pv.id : "#claude"}];
-  return {nome:"Claude", href:"#claude", nodes, edges:[["n1","n2"],["n2","n3"],["n3","n4"],["n4","ex"]], fim:"Árvore completa: Expert em Claude.", dica: n => { const pc = proxClaude(); return pc ? `próxima: ${esc(nomeItem(pc))}` : ""; }};
+  const nodes = [{id:"n1",cod:"N1",nome:"Base",x:36,y:84,p:pn(1),href:hl(1)},{id:"n2",cod:"N2",nome:"Avançado",x:122,y:40,p:pn(2),href:hl(2)},{id:"n3",cod:"N3",nome:"Agentes",x:208,y:84,p:pn(3),href:hl(3)},{id:"n4",cod:"N4",nome:"Construtor",x:294,y:40,p:pn(4),href:hl(4)},{id:"n5",cod:"N5",nome:"Frentes",x:380,y:84,p:pn(5),href:hl(5)},{id:"n6",cod:"N6",nome:"Casos",x:466,y:40,p:pn(6),href:hl(6)},{id:"ex",cod:"★",nome:"Expert",x:560,y:84,p:pe,href:pv ? "#aula-" + pv.id : "#claude"}];
+  return {nome:"Claude", href:"#claude", nodes, edges:[["n1","n2"],["n2","n3"],["n3","n4"],["n4","n5"],["n5","n6"],["n6","ex"]], fim:"Árvore completa: Expert em Claude.", dica: n => { const pc = proxClaude(); return pc ? `próxima: ${esc(nomeItem(pc))}` : ""; }};
 }
 const FAC_COD = [["redes","RED","Redes"],["segur","SEG","Segurança"],["matem","MAT","Matemática"],["program","PRG","Programação"],["nuvem","NUV","Nuvem"],["labvida","LAB","Labvida"],["algorit","ALG","Algoritmos"],["banco","BD","Banco de dados"],["estrutura","ED","Estruturas"],["sistemas","SO","Sistemas"],["engenharia","ES","Engenharia"]];
 function facCod(nome){ const s = nome.toLowerCase(); const m = FAC_COD.find(([k]) => s.includes(k)); return m ? m[1] : nome.replace(/[^A-Za-zÀ-ú]/g,"").slice(0,3).toUpperCase(); }

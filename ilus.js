@@ -97,10 +97,58 @@ escudo: () => svg(`
  ${[["privacidade",70,60],["ética",70,150],["autoria",410,60],["carreira",410,150]].map(([t,x,y])=>`<rect x="${x-56}" y="${y-18}" width="112" height="36" rx="18" class="c"/><text x="${x}" y="${y+5}" text-anchor="middle">${t}</text>`).join("")}`, 220, "Segurança, ética e carreira"),
 
 capaClaude: () => svg(`
- <path d="M20 200 H460" class="k"/>
- ${[1,2,3,4].map(n=>`<rect x="${20+(n-1)*108}" y="${200-n*40}" width="100" height="${n*40}" rx="6" class="${n==4?'as':n==3?'p':'c'}"/><text x="${70+(n-1)*108}" y="${200-n*40+26}" text-anchor="middle" class="tb">Nível ${n}</text>`).join("")}
- <path d="M440 40 V6" class="k"/><path d="M440 8 L470 16 L440 24 Z" class="rf"/>
- <text x="300" y="34" class="th" text-anchor="end">expert</text>`, 210, "Quatro níveis até expert"),
+ <path d="M16 200 H464" class="k"/>
+ ${[1,2,3,4,5,6].map(n=>`<rect x="${16+(n-1)*72}" y="${200-n*27}" width="66" height="${n*27}" rx="5" class="${n==6?'as':n>=4?'p':'c'}"/><text x="${49+(n-1)*72}" y="${200-n*27+19}" text-anchor="middle" class="tb" style="font-size:13px">N${n}</text>`).join("")}
+ <path d="M436 36 V6" class="k"/><path d="M436 8 L464 15 L436 22 Z" class="rf"/>
+ <text x="300" y="34" class="th" text-anchor="end">expert</text>`, 210, "Seis níveis até expert"),
+
+cowork: () => svg(`
+ <rect x="24" y="30" width="150" height="160" rx="12" class="c"/><text x="40" y="58" class="tb">pasta liberada</text>
+ ${[0,1,2,3].map(i=>`<rect x="40" y="${74+i*28}" width="${118-i*14}" height="14" rx="5" class="ink" opacity=".22"/>`).join("")}
+ <path d="M182 110 H262" class="k" marker-end="url(#ar)"/><circle cx="232" cy="96" r="18" class="h"/><text x="232" y="102" text-anchor="middle" class="tb onhl">IA</text>
+ <rect x="276" y="30" width="180" height="160" rx="12" class="p"/><text x="292" y="58" class="tb">entrega pronta</text>
+ <rect x="292" y="74" width="148" height="34" rx="6" class="c"/><text x="302" y="96" class="tsm">relatorio.docx</text>
+ <rect x="292" y="116" width="148" height="34" rx="6" class="c"/><text x="302" y="138" class="tsm">vendas.xlsx</text>
+ <rect x="292" y="158" width="148" height="22" rx="6" class="c"/><text x="302" y="174" class="tsm">resumo.pdf</text>`, 220, "Cowork: pasta liberada, IA e entregas prontas"),
+
+design: () => svg(`
+ <rect x="24" y="24" width="200" height="172" rx="12" class="c"/><text x="40" y="52" class="tb">briefing</text>
+ <text x="40" y="82" class="tsm">público · objetivo</text><text x="40" y="106" class="tsm">sensação · conteúdo</text><text x="40" y="130" class="tsm">referências</text>
+ <path d="M232 110 H272" class="k" marker-end="url(#ar)"/>
+ <rect x="280" y="24" width="176" height="104" rx="10" class="p"/><rect x="294" y="38" width="148" height="26" rx="5" class="pf" opacity=".7"/><rect x="294" y="74" width="70" height="40" rx="5" class="c"/><rect x="372" y="74" width="70" height="40" rx="5" class="c"/>
+ ${["#8B5CF6","#22D3EE","#F59E0B","#F472B6"].map((c,i)=>`<circle cx="${304+i*34}" cy="164" r="13" fill="${c}"/>`).join("")}<text x="368" y="190" class="tsm" text-anchor="middle">design system</text>`, 220, "Claude Design: briefing vira visual com design system"),
+
+cadeia: () => svg(`
+ ${[["pesquisa",30],["legenda",146],["arte",262],["checagem",378]].map(([t,x],i)=>`<rect x="${x}" y="70" width="88" height="56" rx="12" class="${i==3?'p':'c'}"/><text x="${x+44}" y="104" text-anchor="middle" class="tb">${t}</text>${i<3?`<path d="M${x+92} 98 H${x+112}" class="k" marker-end="url(#ar)"/>`:""}`).join("")}
+ <text x="240" y="40" text-anchor="middle" class="th">skills encadeadas</text>
+ <text x="240" y="164" text-anchor="middle" class="tsm">a saída de uma etapa é a entrada da próxima</text>
+ <rect x="150" y="178" width="180" height="28" rx="14" class="as"/><text x="240" y="197" text-anchor="middle" class="tb">você aprova no meio</text>`, 224, "Skills encadeadas com revisão humana"),
+
+agente24: () => svg(`
+ <circle cx="96" cy="100" r="46" class="p"/><path d="M96 70 V100 L118 114" class="k" stroke-width="3"/><text x="96" y="170" text-anchor="middle" class="tb">toda segunda, 8h</text>
+ <path d="M150 100 H206" class="k" marker-end="url(#ar)"/>
+ <rect x="214" y="60" width="104" height="80" rx="12" class="c"/><text x="266" y="96" text-anchor="middle" class="tb">agente</text><text x="266" y="118" text-anchor="middle" class="tsm">roda sozinho</text>
+ <path d="M326 100 H372" class="k" marker-end="url(#ar)"/>
+ <rect x="380" y="46" width="84" height="108" rx="12" class="p"/><text x="422" y="84" text-anchor="middle" class="tb">relatório</text><text x="422" y="108" text-anchor="middle" class="tsm">e você</text><text x="422" y="128" text-anchor="middle" class="tsm">aprova</text>`, 200, "Agente agendado com relatório e aprovação"),
+
+marketing: () => svg(`
+ ${[["alcance",70],["cliques",44],["vendas",20]].map(([t,w],i)=>`<rect x="${36+i*12}" y="${34+i*50}" width="${w*3.8}" height="38" rx="8" class="${i==2?'pf':'c'}" opacity="${i==2?1:1}"/><text x="${46+i*12}" y="${59+i*50}" class="tb">${t}</text>`).join("")}
+ <circle cx="388" cy="112" r="56" class="p"/><text x="388" y="108" text-anchor="middle" class="tb">público</text><text x="388" y="130" text-anchor="middle" class="tsm">+ tom de voz</text>
+ <path d="M300 112 H326" class="k" marker-end="url(#ar)"/>`, 200, "Marketing: funil de alcance, cliques e vendas"),
+
+apps: () => svg(`
+ <rect x="36" y="24" width="98" height="172" rx="14" class="c"/><rect x="48" y="40" width="74" height="22" rx="5" class="p"/><rect x="48" y="72" width="74" height="40" rx="5" class="ink" opacity=".2"/><rect x="48" y="120" width="74" height="40" rx="5" class="ink" opacity=".2"/><rect x="48" y="168" width="74" height="18" rx="9" class="h"/>
+ <path d="M146 110 H208" class="k" marker-end="url(#ar)"/>
+ <rect x="216" y="50" width="104" height="120" rx="12" class="p"/><text x="268" y="96" text-anchor="middle" class="tb">código</text><text x="268" y="120" text-anchor="middle" class="tsm">&lt;/&gt;</text>
+ <path d="M328 110 H368" class="k" marker-end="url(#ar)"/>
+ <circle cx="420" cy="110" r="40" class="c"/><text x="420" y="106" text-anchor="middle" class="tb">no ar</text><text x="420" y="128" text-anchor="middle" class="tsm">cliente</text>`, 220, "Do desenho de tela ao site publicado"),
+
+conteudo: () => svg(`
+ ${[["ideia",30],["texto",136],["arte",242],["post",348]].map(([t,x],i)=>`<rect x="${x}" y="${60+i*0}" width="96" height="52" rx="12" class="${i==3?'p':'c'}"/><text x="${x+48}" y="92" text-anchor="middle" class="tb">${t}</text>${i<3?`<path d="M${x+100} 86 H${x+106}" class="k" marker-end="url(#ar)"/>`:""}`).join("")}
+ <rect x="30" y="140" width="414" height="30" rx="15" class="c"/>
+ ${[0,1,2,3,4,5,6].map(i=>`<circle cx="${62+i*58}" cy="155" r="9" class="${i%2?'h':'a'}"/>`).join("")}
+ <text x="240" y="196" text-anchor="middle" class="tsm">rotina semanal: um dia por etapa</text>`, 210, "Conteúdo: ideia, texto, arte e post em rotina"),
+
 };
 
 const CREST = `<svg class="crest" viewBox="0 0 40 40" aria-hidden="true"><circle style="fill:var(--ink)" cx="20" cy="20" r="18.5"/><circle style="stroke:var(--hl)" cx="20" cy="20" r="14.5" fill="none" stroke-width="1.2" stroke-dasharray="2 2"/><text x="20" y="25.5" text-anchor="middle" style="font-family:var(--f-display);font-weight:800;font-size:14px;fill:var(--paper)">EA</text></svg>`;
