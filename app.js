@@ -345,6 +345,26 @@ const CREST_BIG = crestSVG();
 
 
 /* ===================== central de sites ===================== */
+
+const PROSPECT_STAGES = {pedido:"Aguardando pedido detalhado",iniciativa:"Preparar proposta por iniciativa própria",apresentado:"Proposta apresentada · aguardando retorno"};
+function prospectos(){ return Array.isArray(S.prospectos) ? S.prospectos : []; }
+function prospectForm(id){
+ const p=prospectos().find(x=>x.id===id)||{};
+ modal(`<h2>${p.id?"Editar cliente":"Novo cliente em prospecção"}</h2><form id="f-prospect" data-id="${esc(p.id||"")}" class="stack">
+ <label>Cliente ou empresa<input class="input" name="nome" required maxlength="100" value="${esc(p.nome||"")}" placeholder="Nome do cliente"></label>
+ <label>Situação<select class="input" name="etapa">${Object.entries(PROSPECT_STAGES).map(([k,v])=>`<option value="${k}" ${(p.etapa||"pedido")===k?"selected":""}>${v}</option>`).join("")}</select></label>
+ <label>Oportunidade<textarea class="input" name="ideia" maxlength="2000" rows="3" placeholder="O que conversaram ou o que você quer criar">${esc(p.ideia||"")}</textarea></label>
+ <label>Próxima ação<input class="input" name="acao" maxlength="300" value="${esc(p.acao||"")}" placeholder="Ex.: pedir detalhes ou preparar uma prévia"></label>
+ <label>Prazo (opcional)<input class="input" type="date" name="prazo" value="${esc(p.prazo||"")}"></label>
+ <label>Link da prévia ou site (opcional)<input class="input" type="url" name="url" value="${esc(p.url||"")}" placeholder="https://..."></label>
+ <div class="row"><button class="btn gold" type="submit">Salvar cliente</button><button class="btn" type="button" data-close>Cancelar</button></div></form>`);
+}
+function prospectSection(){
+ const all=prospectos(),active=all.filter(p=>!p.arquivado),archived=all.filter(p=>p.arquivado);
+ const cards=items=>items.map(p=>`<article class="card site-card"><div><span class="tag gold">${esc(PROSPECT_STAGES[p.etapa]||PROSPECT_STAGES.pedido)}</span><h2>${esc(p.nome)}</h2><p class="small muted" style="white-space:pre-wrap">${esc(p.ideia||"Oportunidade ainda sem detalhes.")}</p></div><div class="small"><b>Próxima ação</b><p>${esc(p.acao||"Definir próximo passo")}</p>${p.prazo?`<p class="${!p.arquivado&&p.prazo<hoje()?"tag gold":"muted"}">Prazo: ${esc(fmtData(p.prazo))}</p>`:""}</div><div class="site-actions"><button class="btn sm" data-prospect-edit="${esc(p.id)}">Editar</button><button class="btn sm" data-prospect-archive="${esc(p.id)}">${p.arquivado?"Reativar":"Arquivar"}</button>${/^https?:\/\//i.test(p.url||"")?`<a class="btn sm" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">Abrir prévia ↗</a>`:""}</div></article>`).join("");
+ return `<details class="card site-section" open><summary>Prospectando <span class="tiny muted">${active.length} ${active.length===1?"oportunidade":"oportunidades"}</span></summary><div style="padding:0 18px 18px" class="stack"><p class="small muted">Clientes com quem você já conversou: aguardando um pedido detalhado ou uma proposta que você vai preparar para apresentar e vender.</p><div><button class="btn gold" data-prospect-new>Novo cliente</button></div></div><div class="site-grid">${active.length?cards(active):`<p class="small muted">Nenhum cliente cadastrado ainda. Adicione uma oportunidade para acompanhar o próximo passo.</p>`}</div>${archived.length?`<details><summary>Arquivados (${archived.length})</summary><div class="site-grid">${cards(archived)}</div></details>`:""}</details>`;
+}
+
 function viewSites(){
  const logos={"studio":"<svg viewBox=\"0 0 64 64\" aria-hidden=\"true\"><rect x=\"6\" y=\"38\" width=\"13\" height=\"20\" rx=\"3.5\" fill=\"#1E3A8A\"/><rect x=\"25.5\" y=\"26\" width=\"13\" height=\"32\" rx=\"3.5\" fill=\"#3B82F6\"/><path d=\"M45 58V16l6.5-10L58 16v42z\" fill=\"#22D3EE\"/></svg>","ju":"<svg viewBox=\"22 20 156 176\" xmlns=\"http://www.w3.org/2000/svg\"><defs>\n<linearGradient id=\"lab-ju-c\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F6E1DB\"/><stop offset=\"1\" stop-color=\"#E2B5AB\"/></linearGradient>\n<linearGradient id=\"lab-ju-l\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#F3DAD3\"/><stop offset=\"1\" stop-color=\"#D9A69C\"/></linearGradient></defs>\n<g class=\"petala esq\"><path d=\"M100 150 C70 132 64 86 88 50 C118 84 124 126 100 150 Z\" transform=\"rotate(-30 100 150)\" fill=\"url(#lab-ju-l)\" opacity=\".82\"/></g>\n<g class=\"petala dir\"><path d=\"M100 150 C70 132 64 86 88 50 C118 84 124 126 100 150 Z\" transform=\"scale(-1 1) translate(-200 0) rotate(-30 100 150)\" fill=\"url(#lab-ju-l)\" opacity=\".82\"/></g>\n<g class=\"petala meio\"><path d=\"M100 150 C70 120 72 66 100 26 C128 66 130 120 100 150 Z\" fill=\"url(#lab-ju-c)\" opacity=\".9\"/><path d=\"M100 146 C96 110 96 70 100 34\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.2\" opacity=\".55\"/></g>\n<path class=\"haste\" d=\"M100 150 C98 166 92 180 80 192\" fill=\"none\" stroke=\"#D3A498\" stroke-width=\"2.2\" stroke-linecap=\"round\"/></svg>","lnet":"<svg class=\"brand151-logo\" viewBox=\"0 0 650 192\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\" aria-label=\"LL NET Telecom — proposta de nova identidade\"><defs><linearGradient id=\"lab-ll-ribbon\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop stop-color=\"#2384ff\"/><stop offset=\"1\" stop-color=\"#155EEB\"/></linearGradient></defs><g transform=\"translate(5 6) scale(.78)\"><path d=\"M73 4 36 30C17 43 10 54 10 76v66c0 24 17 42 41 42h66l-31-31H53c-7 0-11-5-11-12V77c0-7 3-13 9-17l22-15Z\" fill=\"url(#lab-ll-ribbon)\"/><path d=\"m125 21-33 23c-9 6-14 15-14 27v49l31 28h37v53l31 20v-79c0-19-14-34-34-34h-34V70l16-12Z\" fill=\"#65D4FF\"/><path d=\"M109 108h34c20 0 34 15 34 34v8h-31v-2h-37l-31-28V90Z\" fill=\"#155EEB\"/></g><text x=\"173\" y=\"113\" fill=\"#F5F8FF\" font-size=\"105\" font-weight=\"800\" letter-spacing=\"-4\" font-family=\"Arial,Helvetica,sans-serif\">LL <tspan fill=\"#3b83ff\">NET</tspan></text><text x=\"181\" y=\"164\" fill=\"#d4e6ff\" font-size=\"28\" letter-spacing=\"21\" font-family=\"Arial,Helvetica,sans-serif\">TELECOM</text></svg>"};
  const bless='<img src="https://arnoldsuheth.github.io/Blessaint/img/logo-blessaint-branco.png" alt="BLESSAINT" loading="lazy" width="180" height="70">';
@@ -353,7 +373,7 @@ function viewSites(){
  return `<div class="stack fade sites-hub"><style>
  .sites-hub .site-section{padding:0;overflow:hidden}.sites-hub summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px;font-weight:800;font-size:1.05rem}.sites-hub summary::-webkit-details-marker{display:none}.sites-hub summary:after{content:"+";font-size:24px;color:var(--cyan)}.sites-hub details[open]>summary:after{content:"−"}.sites-hub .site-grid{padding:0 18px 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.sites-hub .site-card{display:flex;flex-direction:column;gap:18px;min-width:0;background:linear-gradient(135deg,rgba(124,92,255,.08),rgba(34,211,238,.025));transition:transform .2s,border-color .2s}.sites-hub .site-card:hover{transform:translateY(-3px);border-color:var(--cyan)}.sites-hub .site-logo{height:88px;display:flex;align-items:center;justify-content:flex-start;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(5,9,18,.65)}.sites-hub .site-logo svg,.sites-hub .site-logo img{height:62px;width:auto;max-width:210px;object-fit:contain}.sites-hub .site-logo svg.brand151-logo{width:210px}.sites-hub .site-info{flex:1}.sites-hub h2{font-size:1.25rem;margin:12px 0 8px;line-height:1.3}.sites-hub p{margin:0;line-height:1.65}.sites-hub .site-actions{display:flex;flex-wrap:wrap;gap:9px}.sites-hub .site-actions a{min-height:44px;justify-content:center}.sites-hub .site-stats{display:flex;flex-wrap:wrap;gap:10px}.sites-hub a:focus-visible,.sites-hub summary:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}@media(max-width:640px){.sites-hub .site-grid{grid-template-columns:minmax(0,1fr);padding:0 12px 12px}.sites-hub summary{padding:18px}.sites-hub .site-actions a{flex:1 1 140px}}@media(prefers-reduced-motion:reduce){.sites-hub .site-card{transition:none}.sites-hub .site-card:hover{transform:none}}
  </style><div><span class="eyebrow">Seu trabalho em um só lugar</span><h1>Meus sites</h1><p class="muted">Empresas, sistemas e projetos de clientes. Os links abrem em uma nova aba.</p></div>
- <div class="site-stats"><span class="pill">3 acessos das empresas</span><span class="pill">2 projetos aguardando aprovação</span></div>
+ <div class="site-stats"><span class="pill">3 acessos das empresas</span><span class="pill">2 projetos aguardando aprovação</span><span class="pill">${prospectos().filter(p=>!p.arquivado).length} em prospecção</span></div>
  <details class="card site-section" open><summary>Empresas <span class="tiny muted">3 acessos</span></summary><div class="site-grid">
  ${card(logos.studio,"Studio Evolution Tech","Site do estúdio, serviços, portfólio e propostas.","Publicado",[["https://www.studioevolutiontech.com.br/","Abrir site"],["https://github.com/arnoldsuheth/studio-evolution-tech","GitHub"]])}
  ${card(bless,"BLESSAINT","Loja e catálogo oficial da marca.","Publicado",[["https://www.blessaint.com.br/","Abrir site"],["https://github.com/arnoldsuheth/Blessaint","GitHub"]])}
@@ -362,7 +382,7 @@ function viewSites(){
  <details class="card site-section" open><summary>Projetos de clientes <span class="tiny muted">2 projetos</span></summary><div class="site-grid">
  ${card(logos.ju,"Ju Intimates","Site de moda íntima e catálogo da coleção.","Aguardando aprovação do cliente",[["https://arnoldsuheth.github.io/ju-intimates/","Abrir prévia"],["https://github.com/arnoldsuheth/ju-intimates","GitHub"]],true)}
  ${card(logos.lnet,"LL NET Telecom","Pacote Evolution 360: propostas com identidade atual e nova identidade, mais o sistema de gestão.","Aguardando aprovação do cliente",[["https://projeto-151-2-lnet.silkypixie512.chatgpt.site","Nova identidade"],["https://projeto-lnet-02-arnold.silkypixie512.chatgpt.site","Identidade atual"],["https://lnet-gestao-arnold.silkypixie512.chatgpt.site","Abrir gestão"],["https://github.com/arnoldsuheth/studio-evolution-tech/tree/main/lnet","GitHub"]],true)}
- </div></details></div>`;
+ </div></details>${prospectSection()}</div>`;
 }
 
 /* ===================== moldura ===================== */
@@ -1008,6 +1028,9 @@ function abrirLivro(id){
 
 document.addEventListener("click", e => {
   const t = e.target.closest("button"); if (!t || !SESS && !LOCAL) return; const d = t.dataset;
+  if (d.prospectNew !== undefined){ prospectForm(); return; }
+  if (d.prospectEdit){ prospectForm(d.prospectEdit); return; }
+  if (d.prospectArchive){ const p=prospectos().find(x=>x.id===d.prospectArchive); if(p){p.arquivado=!p.arquivado;persist();render(true);toast(p.arquivado?"Cliente arquivado. Você pode reativá-lo.":"Cliente reativado.");} return; }
   if (d.exta){ const [id, mi, ai] = d.exta.split(":"); const c = extC(id), k = mi+":"+ai; let on; act(() => { const r = extR(id); r.a[k] = !r.a[k]; if (!r.a[k]) delete r.a[k]; on = !!r.a[k]; }, "ext", null, e); if (on) S.log[0] && (S.log[0].txt = `${c.nome} · ${c.mods[+mi].aulas[+ai][0]}`); render(true); return; }
   if (d.extm){ const [id, mi, op] = d.extm.split(":"); const c = extC(id), m = c.mods[+mi], f = modFeitas(c, +mi); const nv = op === "all" ? m.n : op === "0" ? 0 : Math.max(0, Math.min(m.n, f + (+op)));
     act(() => { extR(id).m[mi] = nv; }, "ext", nv > f ? `${c.nome} · ${m.t} (${nv}/${m.n})` : null, e); render(true); return; }
@@ -1411,6 +1434,15 @@ function addDisc(nome){
 }
 document.addEventListener("submit", async e => {
   e.preventDefault(); const f = e.target;
+  if (f.id === "f-prospect"){
+    const data=new FormData(f), nome=String(data.get("nome")||"").trim().slice(0,100), url=String(data.get("url")||"").trim();
+    if(!nome){toast("Informe o nome do cliente.");return;}
+    if(url&&!/^https?:\/\//i.test(url)){toast("Use um link iniciado por https:// ou http://.");return;}
+    S.prospectos=prospectos();const previous=S.prospectos.find(p=>p.id===f.dataset.id);
+    const item={id:previous?.id||crypto.randomUUID(),nome,etapa:Object.hasOwn(PROSPECT_STAGES,data.get("etapa"))?data.get("etapa"):"pedido",ideia:String(data.get("ideia")||"").trim().slice(0,2000),acao:String(data.get("acao")||"").trim().slice(0,300),prazo:String(data.get("prazo")||""),url,arquivado:previous?.arquivado||false};
+    if(previous)Object.assign(previous,item);else S.prospectos.push(item);
+    persist();fecharModal();render(true);toast("Cliente salvo.");return;
+  }
   if (f.id === "login-form") return doLogin();
   if (f.id === "setup-form") return doSetup();
   if (f.id === "add-disc") return addDisc($("#disc-nome").value);
