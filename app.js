@@ -386,7 +386,7 @@ function viewSites(){
 }
 
 /* ===================== moldura ===================== */
-const NAV = [["hoje","Painel","hoje"],["trajetoria","Trajetória","traj"],["cursos","Meus cursos","grid"],["arena","Desafios","sword"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["presentes","Presentes","gift"],["sites","Meus sites","grid"],["perfil","Perfil","perfil"]];
+const NAV = [["hoje","Painel","hoje"],["trajetoria","Trajetória","traj"],["sites","Meus sites","grid"],["cursos","Meus cursos","grid"],["arena","Desafios","sword"],["claude","Claude","ia"],["prog","Programação","code"],["fac","Faculdade","fac"],["curso-criadores","Design","pen"],["curso-arte","Desenho","pencil"],["violao","Violão","music"],["livros","Biblioteca","book"],["presentes","Presentes","gift"],["perfil","Perfil","perfil"]];
 const NAV_GRUPO = {claude:"Carreira", "curso-arte":"Hobbies", perfil:""};
 const NAV_TAB = ["hoje","cursos","arena","violao","sites","perfil"];
 const rota = () => (location.hash || "#hoje").slice(1) || "hoje";
