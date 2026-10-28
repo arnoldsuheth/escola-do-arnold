@@ -109,7 +109,7 @@ const nomeItem = x => x.tipo ? x.titulo : `Aula ${numAula(x.id)}`;
 const pct = r => r && r.total ? r.best / r.total : 0;
 const estrelas = r => !r || !r.done ? 0 : pct(r) >= .9 ? 3 : pct(r) >= .7 ? 2 : 1;
 function nivelDone(n){ return CURSO_CLAUDE.filter(x => x.nivel === n && x.tipo !== "prova").every(x => S.claude[x.id] && S.claude[x.id].done); }
-function claudeTitulo(){ if (S.claude.pf && pct(S.claude.pf) >= .7) return "Expert em Claude"; const t = ["Iniciante","Usuário","Usuário avançado","Agente","Construtor","Especialista","Estrategista"]; let k = 0; for (let n=1;n<=6;n++){ if (nivelDone(n)) k = n; else break; } return t[k]; }
+function claudeTitulo(){ if (S.claude.pf && pct(S.claude.pf) >= .7) return "Trilha de Claude concluída"; const t = ["Iniciante","Usuário","Usuário avançado","Agente","Construtor","Especialista","Estrategista"]; let k = 0; for (let n=1;n<=6;n++){ if (nivelDone(n)) k = n; else break; } return t[k]; }
 function claudeStats(){ let done = 0, ps = []; CURSO_CLAUDE.forEach(x => { const r = S.claude[x.id]; if (r && r.done){ done++; if (r.total) ps.push(pct(r)); } }); return {done, total:CURSO_CLAUDE.length, p:done/CURSO_CLAUDE.length, nota: ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length*10 : null}; }
 function progStats(){ let done = 0, ps = []; PROG_AULAS.forEach(([n]) => { const r = S.prog[n]; if (r && r.done){ done++; if (r.tot) ps.push(r.ok/r.tot); } }); return {done, total:PROG_AULAS.length, p:done/PROG_AULAS.length, nota: ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length*10 : null}; }
 function media(d){ const v = ["av1","av2","av3"].map(k => d.notas && d.notas[k]).filter(x => typeof x === "number"); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; }
@@ -542,7 +542,7 @@ function viewClaude(){
   </div></div>`;
 }
 function introModal(){ modal(`<span class="eyebrow">Curso de Claude</span><h2>Como funciona</h2><div style="text-align:left" class="small"><p>Cada aula tem explicação curta com ilustração e dica do professor. No fechamento: mapa mental, quiz de marcar X (uma pergunta por vez, com combo) e a missão prática.</p><p><b>Estrelas:</b> 1 por concluir, 2 com 70% e 3 com 90% no quiz. Vale a melhor tentativa.</p><p><b>Seu título</b> sobe a cada nível: Usuário, Usuário avançado, Agente, Construtor e, passando na prova final com 70%, Expert em Claude com certificado.</p><p>Dúvidas? Toque em "Copiar" e cole na conversa do Projeto com o Claude.</p></div><button class="btn gold" data-close>Entendi</button>`); }
-function certificado(){ const r = S.claude.pf; return `<section class="cert"><span class="eyebrow" style="color:rgba(255,255,255,.6)">O Evolution Lab certifica que</span><h2 style="margin:12px 0;font-size:2rem">${esc(S.nome)}</h2><p>concluiu o <b>Curso de Claude: do zero ao avançado</b></p><p class="small muted" style="margin:0">Prova final ${r.best}/${r.total} · ${new Date(r.at).toLocaleDateString("pt-BR")}</p><div style="margin-top:14px">${starRow(estrelas(r), 30)}</div></section>`; }
+function certificado(){ const r = S.claude.pf; return `<section class="cert"><span class="eyebrow" style="color:rgba(255,255,255,.6)">Registro interno do Evolution Lab</span><h2 style="margin:12px 0;font-size:2rem">${esc(S.nome)}</h2><p>concluiu o <b>Curso de Claude: do zero ao avançado</b> · material independente</p><p class="small muted" style="margin:0">Prova final ${r.best}/${r.total} · ${new Date(r.at).toLocaleDateString("pt-BR")}</p><div style="margin-top:14px">${starRow(estrelas(r), 30)}</div></section>`; }
 
 /* ===================== AULA ===================== */
 const QZ = {};
@@ -555,7 +555,7 @@ function viewAula(id){
    <header class="stack" style="gap:10px"><div class="row"><span class="tag cl">${x.tipo === "prova" ? "Prova final" : x.tipo ? "Revisão" : "Aula " + numAula(x.id)}</span><span class="small dim">${x.min} min</span>${r && r.done ? `<span class="tag gold">${starRow(estrelas(r),13)} concluída</span>` : ""}</div>
     <h1 style="font-size:clamp(1.9rem,6vw,2.8rem)">${esc(x.titulo)}</h1><p class="muted" style="font-size:1.1rem;margin:0">${esc(x.sub)}</p></header>
    ${x.ilu ? `<figure class="fig">${ILUS[x.ilu]()}</figure>` : ""}
-   ${x.tipo ? `<div class="card"><b>${x.tipo === "prova" ? "Regras da prova" : "Esta revisão cobre"}</b><div style="margin-top:10px" class="${x.tipo==="prova"?"muted small":"row"}">${x.tipo === "prova" ? "15 questões do curso todo. Com 70% ou mais você passa e ganha o certificado e o título Expert em Claude. Pode refazer à vontade; vale a melhor nota." : cobre}</div></div>` : `
+   ${x.tipo ? `<div class="card"><b>${x.tipo === "prova" ? "Regras da prova" : "Esta revisão cobre"}</b><div style="margin-top:10px" class="${x.tipo==="prova"?"muted small":"row"}">${x.tipo === "prova" ? "15 questões do curso todo. Com 70% ou mais você conclui esta avaliação e recebe um registro interno de conclusão. Pode refazer à vontade; vale a melhor nota." : cobre}</div></div>` : `
    <p class="content" style="font-size:1.12rem;margin:0">${esc(x.intro)}</p>
    <div class="content">${x.secoes.map((s,k) => `<section class="sec"><h3><span class="k">${k+1}</span>${esc(s[0])}</h3>${s[1]}</section>`).join("")}</div>
    <aside class="tip">${ICO.lamp}<div><b style="font-family:var(--f-d)">Dica do professor</b><p style="margin:6px 0 0">${esc(x.dica)}</p></div></aside>`}
@@ -596,7 +596,7 @@ function textoAula(id){
 }
 
 /* ===================== PROGRAMAÇÃO ===================== */
-function courseAdapter(){ EvoCourse.mount({state:()=>S,change:(fn,txt)=>act(fn,"prog",txt),feedback:ok=>som(ok?"ok":"bad")}); }
+function courseAdapter(){ EvoCourse.mount({state:()=>S,change:(fn,txt)=>act(fn,"prog",txt),save:fn=>{fn();persist();},feedback:ok=>som(ok?"ok":"bad")}); }
 function viewProg(){courseAdapter();return EvoCourse.home();}
 function viewProgLesson(id){courseAdapter();return EvoCourse.lesson(id);}
 function abrirSheet(n){fecharModal();if(location.hash!=="#prog-"+n)location.hash="prog-"+n;else render(true);}
