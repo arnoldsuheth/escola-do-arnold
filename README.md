@@ -21,6 +21,10 @@ Clientes, prospecção, propostas, contratos, parcelas, mensalidades e checklist
 
 No Lab comum, manter somente os links de projetos e o atalho da gestão; não copiar cadastros nem valores privados. Remover a área comercial duplicada da interface, preservando os registros antigos em backup/recuperação até uma conferência de migração, sem apagar silenciosamente dados criptografados.
 
-Toda entrega de projeto segue: salvar/versionar, publicar e conferir acesso, registrar o link em Meus sites do Lab comum, criar/conferir/salvar manual de uso PDF com logo oficial e timbre Studio Evolution Tech e entregar link + manual. Manuais de clientes não contêm acesso ao painel interno, resultados financeiros, credenciais ou dados de outros clientes.
+Toda entrega de projeto segue: salvar/versionar, publicar e conferir acesso e registrar o link em Meus sites do Lab comum.
+
+Manual de uso em PDF é obrigatório somente para projetos entregues a clientes: criar, conferir e salvar o PDF com logo oficial e timbre Studio Evolution Tech, entregando link + manual. Projetos próprios e internos do Arnold, como Evolution Lab, Studio Evolution Tech, BLESSAINT e seus painéis internos, ficam dispensados de manual, salvo pedido explícito. Esta exceção foi solicitada por Arnold em 28/10/2026 e substitui a obrigatoriedade geral anterior. Os manuais já existentes não precisam ser excluídos.
+
+Manuais de clientes não contêm acesso ao painel interno, resultados financeiros, credenciais ou dados de outros clientes.
 
 Não retomar desenvolvimento, sincronização, tutor ou novas gravações no Next sem nova solicitação expressa. Arquivamento é reversível; preservar código, bancos e histórico.
