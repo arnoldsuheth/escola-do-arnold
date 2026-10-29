@@ -14,3 +14,6 @@ Manual de uso em PDF é obrigatório somente para projetos entregues a clientes:
 Manuais de clientes não contêm acesso ao painel interno, resultados financeiros, credenciais ou dados de outros clientes.
 
 Não retomar desenvolvimento, sincronização, tutor ou novas gravações no Next sem nova solicitação expressa. Arquivamento é reversível; preservar código, bancos e histórico.
+
+
+Ao concluir um projeto, lembrar Arnold de avaliar sua inclusão no portfólio do site Studio Evolution Tech e preparar conteúdo correspondente para Instagram. Apresentar prévias reais antes de qualquer divulgação. Não publicar, agendar ou alterar publicações sem autorização explícita prévia para o material; respeitar projetos confidenciais e restrições já informadas. Preservar rigorosamente logo, cores e tipografia oficiais da marca.
