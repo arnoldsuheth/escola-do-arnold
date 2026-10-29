@@ -17,3 +17,6 @@ Não retomar desenvolvimento, sincronização, tutor ou novas gravações no Nex
 
 
 Ao concluir um projeto, lembrar Arnold de avaliar sua inclusão no portfólio do site Studio Evolution Tech e preparar conteúdo correspondente para Instagram. Apresentar prévias reais antes de qualquer divulgação. Não publicar, agendar ou alterar publicações sem autorização explícita prévia para o material; respeitar projetos confidenciais e restrições já informadas. Preservar rigorosamente logo, cores e tipografia oficiais da marca.
+
+
+Atualização comercial de 29/10/2026: Premium confirmado em R$ 249,90/mês. Não anunciar prazos de entrega ou atendimento até nova orientação. A renovação anual do domínio é paga pelo cliente, fora da mensalidade de manutenção; destacar essa condição na revisão final do briefing e na proposta. Cada aplicativo entregue precisa de ícone próprio na tela inicial do iPhone e Android, com a identidade aprovada do respectivo projeto, sem confundir a marca do cliente com a do Studio. Validar configuração e informar quando o teste físico do aparelho ainda estiver pendente.
