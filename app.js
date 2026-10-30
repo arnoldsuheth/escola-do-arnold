@@ -201,6 +201,29 @@ function missoesDia(){
 }
 function missoesCompletas(){ const m = missoesDia(); return m.list.length && m.list.every(q => feitoQ(q)); }
 
+/* ===== tarefas atrasadas: ficam até concluir (desde qua 28/10/2026) ===== */
+const ATRASO_INICIO = "2026-10-28";
+function reqDia(d){ const dow = new Date(d+"T12:00:00").getDay(); if (dow === 5) return {claude:0, prog:0, fac:0}; return {claude:2, prog:(dow>=1 && dow<=4) ? 2 : 0, fac:1}; }
+function feitosDia(d, k){ return S.log.filter(l => l.d === d && l.k === k && (l.xp||0) > 0).length; }
+function diaCurto(d){ const x = new Date(d+"T12:00:00"); return ["dom","seg","ter","qua","qui","sex","sáb"][x.getDay()] + " " + d.slice(8,10) + "/" + d.slice(5,7); }
+function tarefasAtrasadas(){
+  const h = hoje(), kinds = ["claude","prog","fac"], dias = [];
+  for (const d = new Date(ATRASO_INICIO+"T12:00:00"); iso(d) < h; d.setDate(d.getDate()+1)) dias.push(iso(d));
+  const falta = dias.map(d => { const r = reqDia(d), o = {d}; kinds.forEach(k => o[k] = Math.max(0, r[k] - feitosDia(d, k))); return o; });
+  kinds.forEach(k => { let sobra = dias.reduce((a,d) => a + Math.max(0, feitosDia(d,k) - reqDia(d)[k]), 0) + Math.max(0, feitosDia(h,k) - reqDia(h)[k]);
+    for (const f of falta){ if (sobra <= 0) break; const u = Math.min(sobra, f[k]); f[k] -= u; sobra -= u; } });
+  const pcs = CURSO_CLAUDE.filter(x => !(S.claude[x.id] && S.claude[x.id].done)), pps = PROG_AULAS.filter(([n]) => !(S.prog[n] && S.prog[n].done));
+  const fac = S.fac.discs.flatMap(d => (d.topicos||[]).filter(t => !t.ok).map(t => ({d, t})))[0];
+  const out = []; let ic = 0, ip = 0;
+  falta.forEach(f => {
+    if (f.claude && pcs.length){ const a = pcs.slice(ic, ic + f.claude); ic += f.claude; if (a.length) out.push({d:f.d, ic:"ia", t:`Curso de Claude · ${f.claude} ${f.claude>1?"aulas":"aula"}`, s:a.map(x => nomeItem(x)).join(" e "), href:`#aula-${a[0].id}`}); }
+    if (f.prog && pps.length){ const a = pps.slice(ip, ip + f.prog); ip += f.prog; if (a.length) out.push({d:f.d, ic:"code", t:`Programação · ${f.prog} ${f.prog>1?"aulas":"aula"}`, s:a.map(x => "Aula " + x[0]).join(" e "), href:`#prog-${a[0][0]}`}); }
+    if (f.fac) out.push({d:f.d, ic:"fac", t:"Faculdade · 1 atividade", s:fac ? `${fac.t.t} · ${fac.d.nome}` : "Estude e registre um tópico ou atividade", href:"#fac"});
+  });
+  return out;
+}
+const foldGet = (k, def) => { try { const v = localStorage.getItem("ea-fold-"+k); return v === null ? def : v === "1"; } catch { return def; } };
+
 
 function rngProg(a,b){ let t = 0, d = 0; for (let i=a;i<=b;i++){ t++; if (S.prog[i] && S.prog[i].done) d++; } return t ? d/t : 0; }
 function atributos(){
@@ -466,7 +489,9 @@ function viewHoje(){
      <div class="stats3"><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">xp</div><div class="v num">${lv.xp}<small>/${lv.prox || lv.xp}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">aulas</div><div class="v num">${cs.done+ps.done+ds.d}<small>/${cs.total+ps.total+ds.t}</small></div></div><div class="stat" data-go="#trajetoria" role="link" tabindex="0"><div class="k">conquistas</div><div class="v num">${med.filter(m=>m[2]).length}<small>/${med.length}</small></div></div></div>
      ${studyProgressHTML(cs,ps,ds,fs)}<div class="bar" style="margin-top:14px"><i style="width:${Math.round(lv.p*100)}%"></i></div><div class="tiny dim mono" style="margin-top:6px">${lv.prox ? `${Math.max(0,lv.prox-lv.xp)} xp para ${esc(lv.proxNome)}` : "topo da carreira"}</div><p class="small" style="color:var(--amber);margin:8px 0 0">${esc(pendingPromotion(lv))}</p><details class="level-info"><summary>Sobre os níveis</summary><p class="tiny muted">Os cargos representam níveis do jogo. A prática demonstra seu domínio técnico.</p></details></section>
     <section class="card questcard o1"><div class="row between"><span class="k">${md.rest ? "Sexta livre · sequência protegida" : `Quests de hoje · ${feitas}/${md.list.length}`}</span><span class="tiny mono" style="color:var(--violet)">${S.bonus[hoje()] ? "bônus ganho" : "bônus +10 xp"}</span></div>
-     <div style="margin-top:6px">${md.list.map(q => { const ok = feitoQ(q); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div>
+     ${(at2 => at2.length ? `<details class="qfold late" data-fold="atrasadas" ${foldGet("atrasadas", true) ? "open" : ""}><summary><span>Atrasadas · ${at2.length} ${at2.length>1?"tarefas":"tarefa"}</span><span class="qfold-chev" aria-hidden="true"></span></summary><p class="tiny dim" style="margin:4px 0 6px">Ficam aqui até você concluir. As mais antigas primeiro.</p>${at2.map(q => `<a class="quest late" href="${q.href}"><span class="ic"></span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(diaCurto(q.d))} · ${esc(q.s)}</span></span><span class="rw">pendente</span></a>`).join("")}</details>` : "")(tarefasAtrasadas())}
+     <details class="qfold" data-fold="hoje" ${foldGet("hoje", true) ? "open" : ""}><summary><span>Tarefas de hoje · ${feitas}/${md.list.length}</span><span class="qfold-chev" aria-hidden="true"></span></summary>
+     <div style="margin-top:6px">${md.list.map(q => { const ok = feitoQ(q); return `<a class="quest ${ok?"done":""}" href="${q.href}"><span class="ic">${ok ? ICO.check : ""}</span><span style="min-width:0"><b style="display:block;line-height:1.3;font-weight:600">${esc(q.t)}</b><span class="tiny dim">${esc(q.s)}</span></span><span class="rw">${ok ? "feito" : q.xp.replace("XP","xp")}</span></a>`; }).join("") || `<p class="muted">Tudo concluído.</p>`}</div></details>
      <div class="row" style="margin-top:12px"><a class="btn gold" href="${prox}">${pc ? `Continuar quest · ${esc(nomeItem(pc))}` : "Ver certificado"}</a>${pp && new Date().getDay()>=1 && new Date().getDay()<=4 ? `<a class="btn" href="#prog">Aula ${pp[0]} de programação</a>` : ""}</div></section>
     <div class="trees o4"><div class="ttabs" role="tablist">${[["prog","Programação"],["claude","Claude"],["fac","Faculdade"],["design","Design"]].map(([k,t]) => `<button role="tab" data-ttab="${k}" aria-selected="${TREE_TAB===k}">${t}</button>`).join("")}</div>
     <section class="card treecard ${TREE_TAB==="prog"?"on":""}" data-tree="prog"><div class="row between"><span class="k">Árvore · Programação</span><a class="tiny mono" href="#prog" style="color:var(--violet);text-decoration:none">${Math.round(ps.p*100)}% ›</a></div><div style="margin-top:8px">${arv.svg}${listaArvore(arvoreProgNodes().nodes)}</div><div class="small muted">${arv.txt}</div></section>
@@ -796,6 +821,7 @@ function heroInit(){
   const set = open => { h.dataset.open = open ? "1" : "0"; const b = $("#heroToggle"); if (b) b.setAttribute("aria-expanded", open ? "true" : "false"); };
   let timer = 0;
   const save = () => { try { sessionStorage.setItem("evolab-hero", JSON.stringify({dia})); } catch(e){} };
+  document.querySelectorAll("details.qfold").forEach(el => el.addEventListener("toggle", () => { try { localStorage.setItem("ea-fold-"+el.dataset.fold, el.open ? "1" : "0"); } catch {} }));
   $("#heroToggle").onclick = () => { clearTimeout(timer); set(h.dataset.open !== "1"); };
   const q = $("#quote .qt"), full = q ? q.parentNode.dataset.full : "";
   if (visto || calmo){ set(!visto ? true : false); if (!visto && !calmo) save(); }

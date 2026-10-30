@@ -159,6 +159,16 @@ pre code{background:none;padding:0;color:inherit}
 .quest{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line);text-decoration:none;color:var(--text)}
 .quest:first-of-type{border-top:0}
 .quest .ic{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--line2)}
+.qfold{margin-top:10px;border:1px solid var(--line);border-radius:14px;padding:0 12px;background:rgba(255,255,255,.02)}
+.qfold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;font-weight:600;font-size:14px}
+.qfold>summary::-webkit-details-marker{display:none}
+.qfold-chev{width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .2s;margin-right:4px;opacity:.7}
+.qfold[open] .qfold-chev{transform:rotate(-135deg)}
+.qfold[open]{padding-bottom:6px}
+.qfold.late{border-color:rgba(245,158,11,.45);background:linear-gradient(150deg,rgba(245,158,11,.10),rgba(255,255,255,.02))}
+.qfold.late>summary{color:var(--amber,#F59E0B)}
+.quest.late .ic{border-color:rgba(245,158,11,.7)}
+.quest.late .rw{color:var(--amber,#F59E0B)}
 .quest .ic svg{width:15px;height:15px}
 .quest.done .ic{background:var(--cyan);border-color:var(--cyan);color:#04161A}
 .quest.done b{color:var(--dim);text-decoration:line-through;font-weight:500}
